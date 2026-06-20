@@ -1,0 +1,27 @@
+# BeaverSec Configuration File
+settings:
+  timeout: 3.0
+  max_threads: 50
+  default_ports: [21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445, 993, 995, 1723, 3306, 3389, 5900, 8080, 8443]
+  ping_timeout: 1.0
+
+modules:
+  subdomain_brute:
+    wordlist: "wordlist_subdomains.txt"  # Você pode criar um arquivo com "www, mail, ftp, admin, dev, api, test, staging"
+    resolve_timeout: 2.0
+
+  http_headers:
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    redirect: false
+
+  ssl_scan:
+    check_cipher_suites: true
+    warn_expiry_days: 30
+
+  banner_grabber:
+    grab_timeout: 5.0
+    common_ports: [21, 22, 23, 25, 80, 443, 3306, 3389]
+
+logging:
+  level: "INFO"
+  output_file: "beaversec.log"
