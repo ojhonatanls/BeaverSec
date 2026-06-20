@@ -25,9 +25,7 @@ def validate_cidr(cidr: str) -> bool:
         return False
 
 def sanitize_target(target: str) -> str:
-    """
-    Sanitiza o alvo, removendo caracteres potencialmente maliciosos.
-    """
+    """Sanitiza o alvo, removendo caracteres potencialmente maliciosos."""
     sanitized = target.strip()
     sanitized = re.sub(r'[;&|$`(){}]', '', sanitized)
     sanitized = re.sub(r'[\\x00-\\x1f\\x7f]', '', sanitized)

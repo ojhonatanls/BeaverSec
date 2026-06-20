@@ -1,39 +1,61 @@
-import subprocess
-import platform
-import sys
+"""Módulo de traceroute."""
 
-def run(target, **kwargs):
-    """
-    Executa traceroute para o alvo (usa comando do sistema).
-    Exemplo: python main.py traceroute google.com
-    """
-    system = platform.system()
+import subprocess
+import re
+from typing import Dict, Any
+from beaversec.utils.security import validate_target
+
+def run(target: str, **kwargs) -> Dict[str, Any]:
+    """Rastreia a rota até o alvo."""
+    target_type = validate_target(target)
+    if target_type == 'cidr':
+        raise ValueError("Traceroute requer um IP ou domínio, não um CIDR")
+    
+    max_hops = kwargs.get('max_hops', 30)
+    timeout = kwargs.get('timeout', 3)
+    
     try:
-        if system == "Windows":
-            cmd = ["tracert", "-d", "-h", "30", target]
-        else:  # Linux/Mac
-            cmd = ["traceroute", "-n", "-m", "30", target]
+        cmd = ["traceroute", "-m", str(max_hops), "-w", str(timeout), target]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout*max_hops)
         
-        print(f"[+] Running traceroute to {target}...")
-        print("    (Aguarde, pode levar alguns segundos)")
+        if result.returncode != 0:
+            return {"error": result.stderr.strip() or "Falha no traceroute"}
         
-        # Executa e mostra a saída em tempo real
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        lines = result.stdout.strip().split('\n')
+        hops = []
         
-        for line in process.stdout:
-            print(f"    {line.strip()}")
+        for line in lines[1:]:
+            parts = line.split()
+            if len(parts) < 2:
+                continue
             
-        process.wait()
-        if process.returncode != 0:
-            print(f"[-] Traceroute failed with code {process.returncode}")
-            stderr = process.stderr.read()
-            if stderr:
-                print(f"    Error: {stderr}")
+            hop_num = parts[0]
+            ip_match = re.search(r'\(([^)]+)\)', line)
+            if ip_match:
+                ip = ip_match.group(1)
+            else:
+                ip = parts[1] if '.' in parts[1] or ':' in parts[1] else '*'
+            
+            time_match = re.search(r'(\d+\.?\d*)\s*ms', line)
+            time_ms = float(time_match.group(1)) if time_match else None
+            
+            hops.append({
+                "hop": int(hop_num),
+                "ip": ip,
+                "time_ms": time_ms,
+                "raw": line.strip()
+            })
         
-        return
+        return {
+            "target": target,
+            "max_hops": max_hops,
+            "hops": hops,
+            "total_hops": len(hops)
+        }
         
     except FileNotFoundError:
-        print("[-] Comando 'traceroute' ou 'tracert' não encontrado no sistema.")
-        print("    Instale com: apt-get install traceroute (Linux) ou utilize WSL.")
+        return {"error": "Comando 'traceroute' não encontrado. Instale com: sudo apt install traceroute"}
+    except subprocess.TimeoutExpired:
+        return {"error": "Timeout no traceroute"}
     except Exception as e:
-        print(f"[-] Erro inesperado: {e}")
+        return {"error": f"Erro: {str(e)}"}

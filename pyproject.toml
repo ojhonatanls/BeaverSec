@@ -24,3 +24,14 @@ beaversec = "beaversec.main:cli"
 
 [tool.setuptools]
 packages = ["beaversec", "beaversec.utils", "beaversec.modules", "beaversec.exporters"]
+
+
+[tool.ruff]
+select = ["E", "F", "W", "I", "N", "D"]
+ignore = ["D100", "D104", "D203", "D212"]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

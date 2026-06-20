@@ -1,39 +1,72 @@
-import socket
-import concurrent.futures
-from utils.config_loader import get_setting
+"""Módulo de brute force de subdomínios."""
 
-def run(target, **kwargs):
-    """
-    Brute force de subdomínios.
-    Exemplo: python main.py subdomain_brute google.com
-    """
-    # Wordlist simples embutida (ou você pode carregar de um arquivo)
-    wordlist = ["www", "mail", "ftp", "admin", "dev", "api", "test", "staging", 
-                "blog", "shop", "support", "vpn", "remote", "ns1", "ns2", "mx",
-                "pop", "smtp", "imap", "cloud", "server", "web", "app", "git"]
+import dns.resolver
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, Any
+from beaversec.utils.security import validate_target
+
+DEFAULT_WORDLIST = [
+    'www', 'mail', 'ftp', 'localhost', 'webmail', 'smtp', 'pop', 'ns1', 'webdisk',
+    'ns2', 'cpanel', 'whm', 'autodiscover', 'autoconfig', 'm', 'imap', 'test',
+    'ns', 'blog', 'pop3', 'dev', 'www2', 'admin', 'forum', 'news', 'vpn', 'ns3',
+    'mail2', 'new', 'mysql', 'old', 'lists', 'support', 'mobile', 'mx', 'static',
+    'docs', 'beta', 'shop', 'sql', 'secure', 'demo', 'cp', 'calendar', 'wiki',
+    'web', 'media', 'email', 'images', 'img', 'www1', 'intranet', 'portal', 'video',
+    'sip', 'dns2', 'api', 'cdn', 'stats', 'dns1', 'ns4', 'www3', 'dns', 'apps',
+    'internal', 'fs', 'download', 'ftp2', 'vps', 'crm', 'admin2', 'proxy', 'test2',
+    'info', 'host', 'sip2', 'panel', 'ftp1', 'reseller', 'video2', 'm2', 'bugs',
+]
+
+def run(target: str, **kwargs) -> Dict[str, Any]:
+    """Descobre subdomínios por brute force."""
+    target_type = validate_target(target)
+    if target_type != 'domain':
+        raise ValueError(f"Subdomain brute requer um domínio, não {target_type}")
     
-    # Tenta carregar do config se existir
-    config_wordlist = get_setting('modules.subdomain_brute.wordlist', None)
-    # Se quiser implementar leitura de arquivo externo, adicione aqui
+    wordlist = kwargs.get('wordlist', DEFAULT_WORDLIST)
+    if isinstance(wordlist, str):
+        try:
+            with open(wordlist, 'r') as f:
+                wordlist = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            wordlist = DEFAULT_WORDLIST
+    
+    max_threads = kwargs.get('max_threads', 20)
+    timeout = kwargs.get('timeout', 3)
     
     found = []
-    timeout = get_setting('modules.subdomain_brute.resolve_timeout', 2.0)
     
-    def check_sub(sub):
-        subdomain = f"{sub}.{target}"
+    def check_subdomain(sub):
+        full_domain = f"{sub}.{target}"
         try:
-            ip = socket.gethostbyname(subdomain)
-            return (subdomain, ip)
-        except socket.gaierror:
-            return None
+            resolver = dns.resolver.Resolver()
+            resolver.timeout = timeout
+            answers = resolver.resolve(full_domain, 'A')
+            if answers:
+                ips = [str(r) for r in answers]
+                return {"subdomain": full_domain, "ips": ips, "found": True}
+        except:
+            pass
+        return {"subdomain": full_domain, "found": False}
     
-    print(f"[+] Brute-forcing subdomains for {target}...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        futures = {executor.submit(check_sub, sub): sub for sub in wordlist}
-        for future in concurrent.futures.as_completed(futures):
+    print(f"🔍 Brute force em {target} com {len(wordlist)} subdomínios...")
+    
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        futures = {executor.submit(check_subdomain, sub): sub for sub in wordlist}
+        count = 0
+        for future in as_completed(futures):
+            count += 1
+            if count % 50 == 0:
+                print(f"   ⏳ Progresso: {count}/{len(wordlist)}")
+            
             result = future.result()
-            if result:
+            if result['found']:
                 found.append(result)
-                print(f"  Found: {result[0]} -> {result[1]}")
+                print(f"   ✅ Encontrado: {result['subdomain']} -> {', '.join(result['ips'])}")
     
-    return found
+    return {
+        "target": target,
+        "subdomains": found,
+        "total_found": len(found),
+        "total_tested": len(wordlist)
+    }
