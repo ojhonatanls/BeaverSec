@@ -1,8 +1,3 @@
-# 1. Abra o README.md no VSCode ou nano
-nano README.md
-
-# 2. Cole o conteúdo SEM EMOJIS que você mostrou:
-
 <p align="center">
   <img src="assets/BeaverSec2.png" alt="BeaverSec Banner" width="100%" />
 </p>
@@ -25,16 +20,17 @@ BeaverSec é uma ferramenta modular de segurança cibernética com arquitetura e
 
 ## Instalação
 
+```bash
 git clone https://github.com/ojhonatanls/BeaverSec.git
 cd BeaverSec
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Como usar
+## Como usar
 
-# bash
-# listar módulos disponíveis
+# Listar módulos disponíveis
+python main.py -l
 
 # Executar ping sweep
 python main.py ping_sweep 8.8.8.8
@@ -45,19 +41,21 @@ python main.py ping_sweep 8.8.8.8 -v
 # Salvar resultado em JSON
 python main.py ping_sweep 8.8.8.8 -o resultado.json
 
-# Exemplo de saída
-**bash**
+## Exemplo de saída
+
 python main.py ping_sweep 8.8.8.8
 
----
-RESULTADO DO MÓDULO: PING_SWEEP
----
+==================================================
+📊 RESULTADO DO MÓDULO: PING_SWEEP
+==================================================
 Host: 8.8.8.8
-Status: ☑ ATIVO
+Status: ✅ ATIVO
 Latência: 24.10ms
----
-# Licença
+==================================================
 
+## Licença 
 MIT © 2024
+
+
 
 <p align="center">Feito com ✨ por <a href="https://github.com/ojhonatanls">Jhonatan</a></p>
