@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/BeaverSec2.png" alt="BeaverSec Banner" width="100%" />
-</p>
-
 # BeaverSec - Segurança Ofensiva Modular
 
 **Ferramenta modular para pentest, reconhecimento e análise de segurança**
@@ -26,36 +22,10 @@ cd BeaverSec
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
-## Como usar
+## Licença
 
-# Listar módulos disponíveis
-python main.py -l
-
-# Executar ping sweep
-python main.py ping_sweep 8.8.8.8
-
-# Executar com verbose
-python main.py ping_sweep 8.8.8.8 -v
-
-# Salvar resultado em JSON
-python main.py ping_sweep 8.8.8.8 -o resultado.json
-
-## Exemplo de saída
-
-python main.py ping_sweep 8.8.8.8
-
-==================================================
-📊 RESULTADO DO MÓDULO: PING_SWEEP
-==================================================
-Host: 8.8.8.8
-Status: ✅ ATIVO
-Latência: 24.10ms
-==================================================
-
-## Licença 
 MIT © 2024
-
-
 
 <p align="center">Feito com ✨ por <a href="https://github.com/ojhonatanls">Jhonatan</a></p>
