@@ -15,7 +15,7 @@ class ModuleHandler:
     
     def __init__(self):
         self.logger = setup_logger()
-        self.modules: Dict[str, any] = {}
+        self.modules: Dict[str, Any] = {}
         self._load_modules()
         self.logger.info(f"{len(self.modules)} módulo(s) carregado(s) com sucesso.")
 
@@ -45,13 +45,13 @@ class ModuleHandler:
         """Retorna lista com os nomes de todos os módulos carregados."""
         return sorted(self.modules.keys())
 
-    def get_module(self, module_name: str) -> Optional[any]:
+    def get_module(self, module_name: str) -> Optional[Any]:
         """Retorna o módulo pelo nome, ou None se não existir."""
         return self.modules.get(module_name)
 
-    def run_module(self, module_name: str, target: str, verbose: bool = False, **kwargs) -> Dict[str, Any]:
+    def run_module(self, module_name: str, target: str, verbose: bool = False) -> Dict[str, Any]:
         """
-        Executa um módulo específico e retorna o resultado.
+        Executa um módulo específico e RETORNA o resultado.
         Levanta ModuleNotFoundError se o módulo não existir.
         """
         module = self.get_module(module_name)
@@ -60,8 +60,8 @@ class ModuleHandler:
         
         self.logger.info(f"Executando '{module_name}' contra '{target}'...")
         try:
-            # Executa e CAPTURA o retorno
-            result = module.run(target, verbose=verbose, **kwargs)
+            # CAPTURA o retorno do módulo
+            result = module.run(target, verbose=verbose)
             return result
         except KeyboardInterrupt:
             self.logger.warning("Execução interrompida pelo usuário.")
@@ -69,9 +69,3 @@ class ModuleHandler:
         except Exception as e:
             self.logger.error(f"Erro durante execução do módulo '{module_name}': {e}")
             return {"error": str(e)}
-
-    def execute(self, module_name: str, target: str, **kwargs) -> Dict[str, Any]:
-        """
-        Método principal para executar módulos (interface simplificada).
-        """
-        return self.run_module(module_name, target, **kwargs)

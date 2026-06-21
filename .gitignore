@@ -1,6 +1,31 @@
-# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/📦 Adiciona .gitignore para ignorar arquivos de cache
+__pycache__/
+*.pyc
+*.bak
+*.json
+venv/
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/*.db
+.vscode/*.db-shm
+.vscode/*.db-wal
+.vscode/.browse.*
+
+# Python
+*.pyc
+__pycache__/
 *.pyo
 *.pyd
 .Python
@@ -11,41 +36,23 @@ dist/
 build/
 *.log
 
-# Ambiente virtual
-venv/
-env/
-.venv/
-
-# VS Code
-.vscode/
-*.code-workspace
-
-# Arquivos temporários
-*.tmp
+# Cache
+*.cache
 *.bak
 *.swp
 *.swo
-*.~*
 
-# Resultados e relatórios
+# Resultados
 *.json
 *.html
-!assets/*.png
-
-# Documentação (PDFs grandes)
-*.pdf
-!Documentação.pdf
-
-# Testes
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
+report_*.json
+report_*.html
 
 # OS
 .DS_Store
 Thumbs.db
 
-# IDE
-.idea/
-*.iml
+# Misc
+*.tmp
+*.temp
+
