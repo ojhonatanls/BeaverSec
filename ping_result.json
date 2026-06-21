@@ -1,0 +1,6 @@
+{
+  "host": "8.8.8.8",
+  "alive": true,
+  "rtt": 26.0,
+  "output": "PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.\n64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=26.0 ms\n\n--- 8.8.8.8 ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss, time 0ms\nrtt min/avg/max/mdev = 26.043/26.043/26.043/0.000 ms"
+}

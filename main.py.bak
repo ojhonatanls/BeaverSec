@@ -8,7 +8,6 @@ Uso: python main.py <módulo> <alvo> [opções]
 """
 import sys
 import argparse
-import json
 from beaversec.core.handler import ModuleHandler
 from beaversec.utils.logger import setup_logger
 
@@ -47,11 +46,6 @@ def main() -> int:
     )
     
     parser.add_argument(
-        "-o", "--output",
-        help="Salva o resultado em um arquivo (formato JSON)"
-    )
-    
-    parser.add_argument(
         "--version",
         action="version",
         version=f"BeaverSec {__version__}"
@@ -74,43 +68,7 @@ def main() -> int:
     
     try:
         handler = ModuleHandler()
-        # CAPTURA O RESULTADO
-        result = handler.run_module(args.module, args.target, verbose=args.verbose)
-        
-        # EXIBE O RESULTADO FORMATADO
-        print("\n" + "="*50)
-        print(f"📊 RESULTADO DO MÓDULO: {args.module.upper()}")
-        print("="*50)
-        
-        if isinstance(result, dict):
-            # Exibe campos principais
-            if "host" in result:
-                print(f"Host: {result['host']}")
-            if "alive" in result:
-                status = "✅ ATIVO" if result['alive'] else "❌ INATIVO"
-                print(f"Status: {status}")
-            if "rtt" in result and result['rtt'] is not None:
-                print(f"Latência: {result['rtt']:.2f}ms")
-            if "packet_loss" in result and result['packet_loss'] is not None:
-                print(f"Perda de pacotes: {result['packet_loss']}%")
-            if "error" in result:
-                print(f"❌ Erro: {result['error']}")
-            if "output" in result and args.verbose:
-                print(f"\n📝 Saída completa:\n{result['output']}")
-            # Mostra outras chaves
-            for key, value in result.items():
-                if key not in ["host", "alive", "rtt", "packet_loss", "error", "output"]:
-                    print(f"{key}: {value}")
-        else:
-            print(result)
-        
-        # Salva em arquivo se solicitado
-        if args.output:
-            with open(args.output, 'w') as f:
-                json.dump(result, f, indent=2, default=str)
-            print(f"\n💾 Resultado salvo em: {args.output}")
-        
-        print("="*50 + "\n")
+        handler.run_module(args.module, args.target, verbose=args.verbose)
         return 0
         
     except ModuleNotFoundError as e:
