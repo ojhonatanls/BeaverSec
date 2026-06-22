@@ -14,7 +14,7 @@ class HTTPHeaders(BaseModule):
     """Analisa cabeçalhos HTTP de segurança."""
 
     name = "http_headers"
-    description = "Análise de cabeçalhos HTTP de segurança"
+    description = "Analisa headers HTTP de segurança"
 
     def run(self, target: str, **kwargs) -> ModuleResult:
         self._log_start(target)
@@ -32,6 +32,9 @@ class HTTPHeaders(BaseModule):
             session.proxies = proxies
             session.timeout = validated.timeout
 
+            # verify=False é usado intencionalmente em ferramentas de pentest
+            # para permitir a análise de headers mesmo em sites com certificados
+            # SSL/TLS autoassinados ou inválidos, sem interromper o scan.
             resp = session.get(target, allow_redirects=True, verify=False)
             headers = dict(resp.headers)
 

@@ -9,8 +9,12 @@ description = "Ferramenta modular de cibersegurança para pentest"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
+authors = [
+    {name = "Jhonatan", email = "jhonatan@example.com"},
+]
 
 dependencies = [
+    "click>=8.0",
     "pyyaml>=6.0",
     "pydantic>=2.0",
     "rich>=13.0",
@@ -23,8 +27,7 @@ dependencies = [
 beaversec = "beaversec.cli:cli"
 
 [tool.setuptools]
-packages = ["beaversec", "beaversec.utils", "beaversec.modules", "beaversec.exporters"]
-
+packages = ["beaversec", "beaversec.core", "beaversec.utils", "beaversec.modules", "beaversec.exporters"]
 
 [tool.ruff]
 select = ["E", "F", "W", "I", "N", "D"]
