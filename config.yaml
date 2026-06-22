@@ -1,0 +1,33 @@
+# Example BeaverSec configuration for 3.0
+rate_limit: 200  # default rate tokens per second for token bucket
+http_timeout: 30
+
+proxy:
+  url: ""            # e.g., "http://127.0.0.1:8080" or "socks5://127.0.0.1:9050"
+  username: ""
+  password: ""
+
+use_tor: false
+tor_proxy: "socks5://127.0.0.1:9050"
+
+securitytrails:
+  api_key: "YOUR_SECURITYTRAILS_API_KEY"
+
+shodan:
+  api_key: "YOUR_SHODAN_API_KEY"
+
+nvd:
+  api_key: "YOUR_NVD_API_KEY"
+
+# stealth settings
+stealth:
+  enable_mac_spoof: false
+  random_delay_range: [0.0, 0.5]  # seconds
+  packet_fragmentation: false
+
+# exporters
+exporters:
+  json: true
+  html: true
+  csv: true
+  pdf: false

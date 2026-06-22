@@ -1,69 +1,35 @@
-<p align="center">
-  <img src="assets/BeaverSec2.png" alt="BeaverSec Banner" width="100%">
-</p>
+# BeaverSec
 
-# 🦫 BeaverSec - Segurança Ofensiva Modular
+BeaverSec - Modular Offensive Security (v3.0)
 
-**Ferramenta modular para pentest, reconhecimento e análise de segurança**
+Overview
+- Modular scanning framework with BaseModule-based modules.
+- New modules in 3.0: syn_scan, udp_scan, arp_scan, os_detection, service_detection, vuln_scanner, ssl_cipher_scan, dns_zone_transfer, shodan_enum, snmp_enum.
+- Async I/O with aiohttp, token-bucket rate limiting, proxy / Tor support.
 
-BeaverSec é uma ferramenta modular de segurança cibernética com arquitetura extensível.
+Quickstart
+1. Install dependencies:
+   pip install -r requirements.txt
 
-## 📋 Módulos Disponíveis
+2. Edit config.yaml to add API keys (Shodan, SecurityTrails, NVD) and optional proxy settings.
 
-- 🖥️ **ping_sweep** - Verifica hosts ativos via ICMP
-- 🔌 **port_scanner** - Escaneia portas TCP abertas
-- 🌐 **dns_enum** - Enumera registros DNS
-- 🔒 **ssl_scan** - Analisa certificados SSL/TLS
-- 📋 **http_headers** - Analisa headers HTTP de segurança
-- 🔍 **subdomain_brute** - Descobre subdomínios por brute force
-- 🗺️ **traceroute** - Rastreia a rota até o alvo
+3. Example usage:
+   beaversec list
+   beaversec run port_scanner 192.0.2.1 -p 22,80,443
+   beaversec run subdomain_brute example.com --wordlist common.txt
 
-## 🚀 Instalação
+New features in v3.0
+- Rate limiting using token-bucket across modules.
+- Proxy and Tor support for HTTP-based modules.
+- Cipher enumeration and improved SSL scanning with basic vulnerability heuristics.
+- Shodan and SecurityTrails integrations for enrichment.
+- Async modules for better performance.
 
-```bash
-git clone https://github.com/ojhonatanls/BeaverSec.git
-cd BeaverSec
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+Developer notes
+- Modules are registered automatically in beaversec/modules/__init__.py.
+- CLI remains backward compatible; older modules exposing execute() are still supported.
+- Tests are skeletonized under `tests/` — add assertions and mocks as needed.
 
-## 💻 Como usar
-
-```bash
-# Listar módulos disponíveis
-python main.py -l
-
-# Executar ping sweep
-python main.py ping_sweep 8.8.8.8
-
-# Executar com verbose
-python main.py ping_sweep 8.8.8.8 -v
-
-# Salvar resultado em JSON
-python main.py ping_sweep 8.8.8.8 -o resultado.json
-```
-
-## 📊 Exemplo de saída
-
-```bash
-python main.py ping_sweep 8.8.8.8
-```
-
-```
-==================================================
-📊 RESULTADO DO MÓDULO: PING_SWEEP
-==================================================
-Host: 8.8.8.8
-Status: ✅ ATIVO
-Latência: 24.10ms
-==================================================
-```
-
-## 📝 Licença
-
-MIT © 2024
-
----
-
-<p align="center">Feito com 🦫 por <a href="https://github.com/ojhonatanls">Jhonatan</a></p>
+Contributing
+- Follow PEP8 and include docstrings.
+- Run tests with `pytest`.

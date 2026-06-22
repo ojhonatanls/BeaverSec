@@ -1,34 +1,37 @@
-"""
-Módulos do BeaverSec.
-"""
-from beaversec.modules.dns_enum import DNSEnum
-from beaversec.modules.http_headers import HTTPHeaders
-from beaversec.modules.ping_sweep import PingSweep
-from beaversec.modules.port_scanner import PortScanner
-from beaversec.modules.ssl_scan import SSLScan
-from beaversec.modules.subdomain_brute import SubdomainBrute
-from beaversec.modules.traceroute import Traceroute
-from beaversec.modules.whois_lookup import WhoisLookup
+# Module registry for BeaverSec modules.
+# Keep this file in sync as modules are added/removed.
 
+from . import arp_scan
+from . import dns_zone_transfer
+from . import http_headers
+from . import port_scanner
+from . import ping_sweep
+from . import service_detection
+from . import shodan_enum
+from . import snmp_enum
+from . import ssl_cipher_scan
+from . import ssl_scan
+from . import subdomain_brute
+from . import syn_scan
+from . import udp_scan
+from . import vuln_scanner
+from . import whois_lookup  # existing module
+
+# Public mapping used by CLI/orchestrator to discover modules by name.
 MODULES = {
-    "ping-sweep": "Varredura ICMP para hosts ativos",
-    "port-scanner": "Escaneamento de portas TCP",
-    "dns-enum": "Enumeração de registros DNS",
-    "ssl-scan": "Análise de certificados SSL/TLS",
-    "http-headers": "Análise de cabeçalhos HTTP de segurança",
-    "subdomain-brute": "Força bruta para subdomínios",
-    "traceroute": "Rastreamento de rota até o alvo",
-    "whois": "Consulta WHOIS de domínios",
+    arp_scan.ArpScanModule.name: arp_scan.ArpScanModule,
+    dns_zone_transfer.DNSZoneTransferModule.name: dns_zone_transfer.DNSZoneTransferModule,
+    http_headers.HTTPHeadersModule.name: http_headers.HTTPHeadersModule,
+    port_scanner.PortScannerModule.name: port_scanner.PortScannerModule,
+    ping_sweep.PingSweepModule.name: ping_sweep.PingSweepModule,
+    service_detection.ServiceDetectionModule.name: service_detection.ServiceDetectionModule,
+    shodan_enum.ShodanEnumModule.name: shodan_enum.ShodanEnumModule,
+    snmp_enum.SNMPEnumModule.name: snmp_enum.SNMPEnumModule,
+    ssl_cipher_scan.SSLCipherScanModule.name: ssl_cipher_scan.SSLCipherScanModule,
+    ssl_scan.SSLScanModule.name: ssl_scan.SSLScanModule,
+    subdomain_brute.SubdomainBruteModule.name: subdomain_brute.SubdomainBruteModule,
+    syn_scan.SynScanModule.name: syn_scan.SynScanModule,
+    udp_scan.UDPScanModule.name: udp_scan.UDPScanModule,
+    vuln_scanner.VulnScannerModule.name: vuln_scanner.VulnScannerModule,
+    whois_lookup.WhoisLookupModule.name: whois_lookup.WhoisLookupModule,
 }
-
-__all__ = [
-    "DNSEnum",
-    "HTTPHeaders",
-    "PingSweep",
-    "PortScanner",
-    "SSLScan",
-    "SubdomainBrute",
-    "Traceroute",
-    "WhoisLookup",
-    "MODULES",
-]

@@ -1,86 +1,85 @@
+"""Subdomain bruteforcer with optional SecurityTrails integration.
+
+Reads SecurityTrails API key from config (securitytrails -> api_key).
+Uses async transport helper for HTTP requests and respects rate_limit.
 """
-Força bruta para descoberta de subdomínios.
-"""
+from __future__ import annotations
+
+import asyncio
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Dict, Iterable, List
 
-import dns.resolver
-
-from beaversec.core.base_module import BaseModule, ModuleResult
+from beaversec.core.rate_limiter import TokenBucket
+from beaversec.core.transport import TransportFactory
+from beaversec.core.base import BaseModule
+from beaversec.config import get_config
 
 logger = logging.getLogger(__name__)
 
 
-class SubdomainBrute(BaseModule):
-    """Descobre subdomínios por força bruta."""
+class SubdomainBruteModule(BaseModule):
+    """Subdomain brute force with optional SecurityTrails enrichment."""
 
     name = "subdomain_brute"
-    description = "Força bruta para subdomínios"
 
-    def run(self, target: str, **kwargs) -> ModuleResult:
-        self._log_start(target)
-        validated = self.validate_input(target, **kwargs)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        cfg = get_config()
+        self._st_key = cfg.get("securitytrails", {}).get("api_key")
+        self._limiter = TokenBucket(rate=float(cfg.get("rate_limit", 100.0)), capacity=float(cfg.get("rate_limit", 100.0)))
+        self.transport = TransportFactory(cfg)
 
-        # Wordlist básica (poderia ser carregada de arquivo)
-        wordlist = [
-            "www", "mail", "ftp", "localhost", "webmail", "smtp", "pop", "ns1",
-            "webdisk", "ns2", "cpanel", "whm", "autodiscover", "autoconfig", "m",
-            "imap", "test", "ns", "blog", "pop3", "dev", "www2", "admin", "forum",
-            "news", "vpn", "ns3", "mail2", "new", "mysql", "old", "lists",
-            "support", "mobile", "mx", "static", "docs", "beta", "shop", "sql",
-            "secure", "demo", "cp", "calendar", "wiki", "web", "media", "email",
-            "images", "img", "www1", "intranet", "portal", "video", "sip", "dns",
-            "api", "cdn", "stats", "download", "dictionary", "incoming", "support",
-            "info", "login", "app", "apps", "dashboard", "monitor", "status",
-        ]
-
-        resolver = dns.resolver.Resolver()
-        resolver.timeout = validated.timeout
-        resolver.lifetime = validated.timeout
-
-        found = []
-        total = len(wordlist)
-        logger.info(f"Testando {total} subdomínios para {target}")
-
-        # Detecção de wildcard (resolver um subdomínio aleatório)
-        wildcard_check = f"wildcard-{hash(target)}-test.{target}"
+    async def query_securitytrails(self, domain: str) -> Dict[str, Any]:
+        """Query SecurityTrails for known subdomains (fallback to HTTP call)."""
+        await self._limiter.acquire(1.0)
+        session = await self.transport.session()
+        headers = {"Accept": "application/json"}
+        if self._st_key:
+            headers["APIKEY"] = self._st_key
         try:
-            resolver.resolve(wildcard_check, "A")
-            wildcard = True
-            logger.warning("Wildcard DNS detectado - pode haver falsos positivos")
+            kw = TransportFactory.request_kwargs_for_session(session)
+            url = f"https://api.securitytrails.com/v1/domain/{domain}/subdomains"
+            async with session.get(url, headers=headers, **kw) as resp:
+                if resp.status != 200:
+                    return {}
+                data = await resp.json()
+                # SecurityTrails returns list under 'subdomains'
+                return {"subdomains": data.get("subdomains", [])}
         except Exception:
-            wildcard = False
+            logger.debug("SecurityTrails query failed for %s", domain)
+            return {}
 
-        def check_sub(sub: str) -> str | None:
-            fqdn = f"{sub}.{target}"
-            try:
-                resolver.resolve(fqdn, "A")
-                if wildcard:
-                    return fqdn
-                return fqdn
-            except Exception:
-                return None
+    async def brute(self, domain: str, wordlist: Iterable[str]) -> List[str]:
+        await self._limiter.acquire(1.0)
+        found: List[str] = []
+        tasks = []
+        for w in wordlist:
+            fqdn = f"{w}.{domain}"
+            tasks.append(asyncio.create_task(self._resolve(fqdn)))
+        for t in tasks:
+            ok, fqdn = await t
+            if ok:
+                found.append(fqdn)
+        return found
 
-        with ThreadPoolExecutor(max_workers=validated.threads) as executor:
-            futures = {executor.submit(check_sub, sub): sub for sub in wordlist}
-            for future in as_completed(futures):
-                sub = futures[future]
-                try:
-                    res = future.result()
-                    if res:
-                        found.append(res)
-                        logger.debug(f"Subdomínio encontrado: {res}")
-                except Exception as e:
-                    logger.warning(f"Erro ao testar {sub}: {e}")
+    async def _resolve(self, fqdn: str) -> tuple[bool, str]:
+        await self._limiter.acquire(1.0)
+        try:
+            # lightweight resolution using asyncio
+            await asyncio.get_event_loop().getaddrinfo(fqdn, None)
+            return True, fqdn
+        except Exception:
+            return False, fqdn
 
-        return ModuleResult(
-            module=self.name,
-            target=target,
-            success=True,
-            data={
-                "subdomains": found,
-                "count": len(found),
-                "total_tested": total,
-                "wildcard_detected": wildcard,
-            },
-        )
+    async def run(self, domains: Iterable[str], wordlist: Iterable[str] | None = None, enrich: bool = True, **kwargs: Any) -> Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        for d in domains:
+            results = {"found": []}
+            # brute
+            if wordlist:
+                results["found"] = await self.brute(d, wordlist)
+            if enrich and self._st_key:
+                st = await self.query_securitytrails(d)
+                results["securitytrails"] = st
+            out[d] = results
+        return out

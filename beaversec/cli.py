@@ -1,98 +1,84 @@
+"""CLI entrypoint for BeaverSec.
+
+Enhances existing CLI by registering new modules and preserving backward compatibility.
 """
-Interface de linha de comando usando Click.
-"""
-import sys
-import json
-from pathlib import Path
+from __future__ import annotations
+
+import asyncio
+import logging
+from typing import Any, Iterable, List
 
 import click
 
-from beaversec.core.beaver import Beaver
-from beaversec.modules.ping_sweep import PingSweep
-from beaversec.modules.port_scanner import PortScanner
-from beaversec.modules.dns_enum import DNSEnum
-from beaversec.modules.ssl_scan import SSLScan
-from beaversec.modules.http_headers import HTTPHeaders
-from beaversec.modules.subdomain_brute import SubdomainBrute
-from beaversec.modules.traceroute import Traceroute
-from beaversec.modules.whois_lookup import WhoisLookup
+from beaversec.modules import MODULES
+from beaversec.config import get_config
+
+logger = logging.getLogger("beaversec.cli")
 
 
 @click.group()
-@click.version_option(version="2.0.0")
-def cli():
-    """BeaverSec - Ferramenta de cibersegurança"""
-    pass
+@click.option("--config", "-c", type=click.Path(), default="config.yaml", help="Path to config.yaml")
+@click.option("--debug", is_flag=True, default=False, help="Enable debug logging")
+@click.pass_context
+def cli(ctx: click.Context, config: str, debug: bool) -> None:
+    """BeaverSec - modular offensive security toolkit."""
+    cfg = get_config(config)
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+    ctx.ensure_object(dict)
+    ctx.obj["config"] = cfg
 
 
 @cli.command()
-def list():
-    """Lista módulos disponíveis"""
-    modules = {
-        "ping_sweep": "Verifica hosts ativos via ICMP",
-        "port_scanner": "Escaneia portas TCP abertas",
-        "dns_enum": "Enumera registros DNS",
-        "ssl_scan": "Analisa certificados SSL/TLS",
-        "http_headers": "Analisa headers HTTP de segurança",
-        "subdomain_brute": "Descobre subdomínios por brute force",
-        "traceroute": "Rastreia a rota até o alvo",
-        "whois_lookup": "Consulta WHOIS de domínios",
-    }
-    click.echo("📋 Módulos disponíveis:")
-    for name, desc in modules.items():
-        click.echo(f"  - {name:15} - {desc}")
+def list() -> None:
+    """List available modules."""
+    click.echo("Available modules:")
+    for name in sorted(MODULES.keys()):
+        click.echo(f" - {name}")
 
 
 @cli.command()
-@click.argument("module")
-@click.option("--target", required=True, help="Alvo (IP/domínio/URL)")
-@click.option("--args", help="Argumentos extras em formato JSON")
-@click.option("--output-file", help="Salva resultado em arquivo")
-@click.option("--format", type=click.Choice(["json", "html"]), default="json", help="Formato do relatório")
-@click.option("--verbose", is_flag=True, help="Logs detalhados")
-@click.option("--timeout", default=5.0, help="Timeout em segundos")
-def run(module, target, args, output_file, format, verbose, timeout):
-    """Executa um módulo"""
-    # Mapeamento de módulos
-    module_map = {
-        "ping_sweep": PingSweep,
-        "port_scanner": PortScanner,
-        "dns_enum": DNSEnum,
-        "ssl_scan": SSLScan,
-        "http_headers": HTTPHeaders,
-        "subdomain_brute": SubdomainBrute,
-        "traceroute": Traceroute,
-        "whois_lookup": WhoisLookup,
-    }
-    
-    if module not in module_map:
-        click.echo(f"[-] Módulo '{module}' não encontrado.")
-        click.echo("Use 'beaversec list' para ver os módulos disponíveis.")
-        sys.exit(1)
-    
-    # Instancia o orquestrador
-    beaver = Beaver(verbose=verbose)
-    
-    # Registra o módulo
-    mod_instance = module_map[module]()
-    beaver.register_module(mod_instance)
-    
-    # Executa
-    click.echo(f"[+] Executando {module} em {target}...")
-    result = beaver.run_module(module, target, timeout=timeout)
-    
-    if output_file:
-        beaver.export(format, output_file)
-        click.echo(f"[+] Resultado salvo em {output_file}")
-    
-    if result.success:
-        click.echo("[+] Sucesso!")
-        if verbose:
-            click.echo(json.dumps(result.data, indent=2))
-    else:
-        click.echo(f"[-] Falha: {', '.join(result.errors)}")
-        sys.exit(1)
+@click.argument("module_name", type=str)
+@click.argument("targets", nargs=-1)
+@click.option("--ports", "-p", default="", help="Comma separated ports (e.g., 22,80,443)")
+@click.option("--output", "-o", default=None, help="Output file (json/csv/html)")
+@click.pass_context
+def run(ctx: click.Context, module_name: str, targets: List[str], ports: str, output: str | None) -> None:
+    """Run a module by name against given targets."""
+    if module_name not in MODULES:
+        click.echo(f"Module {module_name} not found. Use `list` to view available modules.")
+        raise click.Abort()
+    if not targets:
+        click.echo("No targets provided.")
+        raise click.Abort()
 
+    module_cls = MODULES[module_name]
+    # instantiate module (BaseModule signature assumed to accept config)
+    module = module_cls(config=ctx.obj.get("config"))
 
-if __name__ == "__main__":
-    cli()
+    # parse ports
+    port_list: List[int] = []
+    if ports:
+        port_list = [int(p.strip()) for p in ports.split(",") if p.strip()]
+
+    # maintain backward compatibility: allow sync run and async run
+    async def _run_async() -> Any:
+        if hasattr(module, "run"):
+            res = await module.run(targets=targets, ports=port_list) if "ports" in module.run.__annotations__.get("return", {}) else await module.run(targets, port_list)
+            return res
+        elif hasattr(module, "execute"):
+            # older modules might expose execute(targets, **kwargs)
+            if asyncio.iscoroutinefunction(module.execute):
+                return await module.execute(targets=targets, ports=port_list)
+            else:
+                # run in executor to avoid blocking
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(None, lambda: module.execute(targets, port_list))
+        else:
+            raise RuntimeError("Module has no run/execute method")
+
+    click.echo(f"Running {module_name} against {len(targets)} target(s)...")
+    result = asyncio.run(_run_async())
+    # basic printing; exporters will be used in later steps
+    click.echo("Result:")
+    click.echo(str(result))

@@ -1,73 +1,88 @@
+"""HTTP headers scanner with CSP evaluation and security scoring.
+
+Uses aiohttp via TransportFactory. Produces a simple security score based on
+presence/absence of recommended headers.
 """
-Análise de cabeçalhos HTTP de segurança.
-"""
+from __future__ import annotations
+
+import asyncio
 import logging
+from typing import Any, Dict, Iterable, List
 
-import requests
-
-from beaversec.core.base_module import BaseModule, ModuleResult
+from beaversec.core.rate_limiter import TokenBucket
+from beaversec.core.transport import TransportFactory
+from beaversec.core.base import BaseModule
+from beaversec.config import get_config
 
 logger = logging.getLogger(__name__)
 
 
-class HTTPHeaders(BaseModule):
-    """Analisa cabeçalhos HTTP de segurança."""
+RECOMMENDED_HEADERS = [
+    "content-security-policy",
+    "x-frame-options",
+    "x-content-type-options",
+    "strict-transport-security",
+    "referrer-policy",
+]
+
+
+class HTTPHeadersModule(BaseModule):
+    """HTTP header inspection and CSP evaluation."""
 
     name = "http_headers"
-    description = "Análise de cabeçalhos HTTP de segurança"
 
-    def run(self, target: str, **kwargs) -> ModuleResult:
-        self._log_start(target)
-        validated = self.validate_input(target, **kwargs)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        cfg = get_config()
+        self._limiter = TokenBucket(rate=float(cfg.get("rate_limit", 50.0)), capacity=float(cfg.get("rate_limit", 50.0)))
+        self.transport = TransportFactory(cfg)
 
-        if not target.startswith(("http://", "https://")):
-            target = "https://" + target
-
-        proxies = None
-        if validated.proxy:
-            proxies = {"http": validated.proxy, "https": validated.proxy}
-
+    async def fetch(self, url: str) -> Dict[str, Any]:
+        await self._limiter.acquire(1.0)
+        session = await self.transport.session()
         try:
-            session = requests.Session()
-            session.proxies = proxies
-            session.timeout = validated.timeout
+            kw = TransportFactory.request_kwargs_for_session(session)
+            async with session.get(url, **kw) as resp:
+                headers = {k.lower(): v for k, v in resp.headers.items()}
+                body = await resp.text()
+                return {"status": resp.status, "headers": headers, "body_snippet": body[:1024]}
+        except Exception as exc:
+            logger.debug("HTTP fetch failed for %s: %s", url, exc)
+            return {"error": str(exc)}
 
-            resp = session.get(target, allow_redirects=True, verify=False)
-            headers = dict(resp.headers)
+    def _evaluate_csp(self, csp_value: str) -> Dict[str, Any]:
+        # Very small CSP heuristic evaluator (presence/unsafe keywords)
+        score = 100
+        issues = []
+        if "unsafe-inline" in csp_value:
+            score -= 30
+            issues.append("unsafe-inline")
+        if "unsafe-eval" in csp_value:
+            score -= 30
+            issues.append("unsafe-eval")
+        if "data:" in csp_value:
+            score -= 10
+            issues.append("data-scheme")
+        return {"csp_score": max(score, 0), "csp_issues": issues}
 
-            # Análise de segurança
-            security_headers = {
-                "Strict-Transport-Security": "HSTS",
-                "Content-Security-Policy": "CSP",
-                "X-Frame-Options": "Clickjacking",
-                "X-Content-Type-Options": "MIME Sniffing",
-                "Referrer-Policy": "Referrer",
-                "Permissions-Policy": "Permissions",
-            }
+    async def inspect(self, url: str) -> Dict[str, Any]:
+        data = await self.fetch(url)
+        headers = data.get("headers", {})
+        score = 0
+        missing = []
+        for h in RECOMMENDED_HEADERS:
+            if h in headers:
+                score += 20
+            else:
+                missing.append(h)
+        csp_info = {}
+        if "content-security-policy" in headers:
+            csp_info = self._evaluate_csp(headers["content-security-policy"])
+        return {"url": url, "status": data.get("status"), "score": score, "missing": missing, "csp": csp_info, "raw": data}
 
-            analysis = {}
-            for hdr, name in security_headers.items():
-                if hdr in headers:
-                    analysis[name] = {"present": True, "value": headers[hdr]}
-                else:
-                    analysis[name] = {"present": False, "value": None}
-
-            return ModuleResult(
-                module=self.name,
-                target=target,
-                success=True,
-                data={
-                    "headers": headers,
-                    "security_analysis": analysis,
-                    "status_code": resp.status_code,
-                    "server": headers.get("Server", "unknown"),
-                },
-            )
-
-        except Exception as e:
-            return ModuleResult(
-                module=self.name,
-                target=target,
-                success=False,
-                errors=[str(e)],
-            )
+    async def run(self, targets: Iterable[str], **kwargs: Any) -> Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        tasks = [asyncio.create_task(self.inspect(t)) for t in targets]
+        for t, task in zip(targets, tasks):
+            out[t] = await task
+        return out
