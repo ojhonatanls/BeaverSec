@@ -1,58 +1,30 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-*.egg-info/
-.pytest_cache/
-.mypy_cache/📦 Adiciona .gitignore para ignorar arquivos de cache
-__pycache__/
-*.pyc
-*.bak
-*.json
-venv/
-__pycache__/
-*.pyc
+# BeaverSec - unified installer for development
+#!/usr/bin/env bash
+set -euo pipefail
 
-# VS Code
-.vscode/*.db
-.vscode/*.db-shm
-.vscode/*.db-wal
-.vscode/.browse.*
+# Create a virtual environment and install editable package + dev extras (if available)
+PY=${PY:-python3}
+VENV_DIR=${VENV_DIR:-.venv}
 
-# Python
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-*.log
+echo "🦫 BeaverSec - Criando ambiente virtual em $VENV_DIR"
+$PY -m venv "$VENV_DIR"
+source "$VENV_DIR/bin/activate"
 
-# Cache
-*.cache
-*.bak
-*.swp
-*.swo
+if [ -f "pyproject.toml" ]; then
+    echo "📦 Instalando dependências a partir do pyproject.toml (via pip)"
+    pip install --upgrade pip
+    # If package has extras named 'dev', install them for tests/linters
+    pip install -e ".[dev]" || pip install -e . || true
+elif [ -f "requirements.txt" ]; then
+    echo "📦 Instalando dependências do requirements.txt"
+    pip install -r requirements.txt
+else
+    echo "ℹ️  Nenhum gerenciador de dependências encontrado."
+fi
 
-# Resultados
-*.json
-*.html
-report_*.json
-report_*.html
+# Make main executable
+chmod +x main.py
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Misc
-*.tmp
-*.temp
-
+# Suggest running tests
+echo "✅ Instalação concluída. Ative o venv: source $VENV_DIR/bin/activate"
+echo "Para rodar testes: pytest -q"
