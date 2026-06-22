@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class WhoisLookup(BaseModule):
     """Consulta WHOIS de domínios."""
 
-    name = "whois"
+    name = "whois_lookup"
     description = "Consulta WHOIS de domínios"
 
     def run(self, target: str, **kwargs) -> ModuleResult:

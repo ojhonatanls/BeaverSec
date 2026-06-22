@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class DNSEnum(BaseModule):
     """Enumera registros DNS de um domínio."""
 
-    name = "dns-enum"
+    name = "dns_enum"
     description = "Enumeração de registros DNS"
 
     def run(self, target: str, **kwargs) -> ModuleResult:

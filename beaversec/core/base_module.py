@@ -4,7 +4,6 @@ Módulo base para todos os scanners do BeaverSec.
 import logging
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ValidationError
@@ -32,14 +31,14 @@ class ModuleResult(BaseModel):
     duration: float = 0.0
 
 
-@dataclass
 class BaseModule(ABC):
     """Classe abstrata base para todos os módulos."""
 
+    # Atributos de classe que devem ser sobrescritos pelas classes filhas
     name: str = "base"
     description: str = "Módulo base"
 
-    def __post_init__(self) -> None:
+    def __init__(self) -> None:
         self._logger = logging.getLogger(f"beaversec.{self.name}")
 
     @abstractmethod

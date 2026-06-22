@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class SubdomainBrute(BaseModule):
     """Descobre subdomínios por força bruta."""
 
-    name = "subdomain-brute"
+    name = "subdomain_brute"
     description = "Força bruta para subdomínios"
 
     def run(self, target: str, **kwargs) -> ModuleResult:

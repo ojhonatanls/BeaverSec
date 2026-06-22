@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class HTTPHeaders(BaseModule):
     """Analisa cabeçalhos HTTP de segurança."""
 
-    name = "http-headers"
+    name = "http_headers"
     description = "Análise de cabeçalhos HTTP de segurança"
 
     def run(self, target: str, **kwargs) -> ModuleResult:

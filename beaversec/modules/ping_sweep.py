@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class PingSweep(BaseModule):
     """Varredura de hosts ativos via ICMP."""
 
-    name = "ping-sweep"
+    name = "ping_sweep"
     description = "Varredura ICMP para hosts ativos"
 
     def _ping_host(self, ip: str, timeout: float) -> bool:

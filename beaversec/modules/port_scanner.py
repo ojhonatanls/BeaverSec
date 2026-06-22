@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class PortScanner(BaseModule):
     """Escaneamento de portas TCP com threading."""
 
-    name = "port-scanner"
+    name = "port_scanner"
     description = "Escaneamento de portas TCP"
 
     def _scan_port(self, ip: str, port: int, timeout: float) -> int | None:

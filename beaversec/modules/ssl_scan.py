@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class SSLScan(BaseModule):
     """Analisa certificados SSL/TLS de um host."""
 
-    name = "ssl-scan"
+    name = "ssl_scan"
     description = "Análise de certificados SSL/TLS"
 
     def run(self, target: str, **kwargs) -> ModuleResult:

@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.scripts]
-beaversec = "beaversec.main:cli"
+beaversec = "beaversec.cli:cli"
 
 [tool.setuptools]
 packages = ["beaversec", "beaversec.utils", "beaversec.modules", "beaversec.exporters"]
