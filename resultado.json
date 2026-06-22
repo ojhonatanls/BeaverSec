@@ -1,0 +1,15 @@
+[
+  {
+    "module": "port_scanner",
+    "target": "127.0.0.1",
+    "success": true,
+    "data": {
+      "open_ports": [
+        631
+      ],
+      "count": 1
+    },
+    "errors": [],
+    "duration": 0.10168004035949707
+  }
+]
