@@ -15,6 +15,7 @@ import json
 import importlib
 from typing import Any
 from beaversec.utils.logger import setup_logger, get_logger
+from beaversec.utils import output as output_utils
 
 __version__ = "0.1.0"
 
@@ -107,32 +108,33 @@ def main() -> int:
         kwargs = {"verbose": args.verbose}
         result = run_fn(args.target, **kwargs)
 
-        # Mostra resultado resumido
-        print("\n" + "="*50)
-        print(f"📊 RESULTADO DO MÓDULO: {args.module.upper()}")
-        print("="*50)
-
-        if isinstance(result, dict):
-            # Exibe alguns campos comuns se existirem
-            if "host" in result:
-                print(f"Host: {result['host']}")
-            if "alive" in result:
-                status = "✅ ATIVO" if result['alive'] else "❌ INATIVO"
-                print(f"Status: {status}")
-            if "rtt" in result and result['rtt'] is not None:
-                try:
-                    print(f"Latência: {result['rtt']:.2f}ms")
-                except Exception:
-                    print(f"Latência: {result['rtt']}")
-            if "error" in result:
-                print(f"Error: {result['error']}")
-            # Se tiver raw output, print opcional
-            if "output" in result and args.verbose:
-                print("\n[RAW OUTPUT]")
-                print(result.get("output"))
-        else:
-            # Se o módulo retornou outra coisa (None, list, etc.), apenas print
-            print(result)
+        # Use central output helper to print result consistently
+        try:
+            if isinstance(result, dict):
+                output_utils.print_result(result, verbose=args.verbose)
+            else:
+                # fallback: simple print
+                print(result)
+        except Exception:
+            # In case printing fails, fallback to previous behavior
+            if isinstance(result, dict):
+                if "host" in result:
+                    print(f"Host: {result['host']}")
+                if "alive" in result:
+                    status = "✅ ATIVO" if result['alive'] else "❌ INATIVO"
+                    print(f"Status: {status}")
+                if "rtt" in result and result['rtt'] is not None:
+                    try:
+                        print(f"Latência: {result['rtt']:.2f}ms")
+                    except Exception:
+                        print(f"Latência: {result['rtt']}")
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                if "output" in result and args.verbose:
+                    print("\n[RAW OUTPUT]")
+                    print(result.get("output"))
+            else:
+                print(result)
 
         # Salvar como JSON se solicitado
         if args.output:
