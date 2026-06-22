@@ -28,6 +28,9 @@ def test_ping_alive(monkeypatch):
 
     result = ping_sweep.run("8.8.8.8", timeout=1, count=1)
     assert result["status"] == "success"
+    # data deve ser um dict e conter rtt quando disponível
+    assert isinstance(result.get("data"), dict)
+    assert "rtt" in result["data"], "expected 'rtt' in result['data']"
     assert result["data"]["rtt"] == 12.3
     assert result["target"] == "8.8.8.8"
 
