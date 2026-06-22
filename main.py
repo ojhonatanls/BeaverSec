@@ -43,6 +43,27 @@ def _import_module_by_name(name: str):
     except ModuleNotFoundError:
         raise
 
+def print_result(result):
+    """Imprime resultado formatado."""
+    if isinstance(result, dict):
+        print("\n📊 RESULTADO:")
+        if 'error' in result:
+            print(f"  ❌ {result['error']}")
+        else:
+            for key, value in result.items():
+                if isinstance(value, dict):
+                    print(f"  {key}:")
+                    for k, v in value.items():
+                        print(f"    {k}: {v}")
+                elif isinstance(value, list):
+                    print(f"  {key}: {len(value)} itens")
+                    for item in value[:5]:
+                        print(f"    - {item}")
+                    if len(value) > 5:
+                        print(f"    ... e mais {len(value)-5} itens")
+                else:
+                    print(f"  {key}: {value}")
+
 def main() -> int:
     logger = setup_logger()
     log = get_logger()
@@ -109,31 +130,11 @@ def main() -> int:
         result = run_fn(args.target, **kwargs)
 
         # Use central output helper to print result consistently
-        try:
+        if result is not None:
             if isinstance(result, dict):
-                output_utils.print_result(result, verbose=args.verbose)
+                print_result(result)
             else:
                 # fallback: simple print
-                print(result)
-        except Exception:
-            # In case printing fails, fallback to previous behavior
-            if isinstance(result, dict):
-                if "host" in result:
-                    print(f"Host: {result['host']}")
-                if "alive" in result:
-                    status = "✅ ATIVO" if result['alive'] else "❌ INATIVO"
-                    print(f"Status: {status}")
-                if "rtt" in result and result['rtt'] is not None:
-                    try:
-                        print(f"Latência: {result['rtt']:.2f}ms")
-                    except Exception:
-                        print(f"Latência: {result['rtt']}")
-                if "error" in result:
-                    print(f"Error: {result['error']}")
-                if "output" in result and args.verbose:
-                    print("\n[RAW OUTPUT]")
-                    print(result.get("output"))
-            else:
                 print(result)
 
         # Salvar como JSON se solicitado
