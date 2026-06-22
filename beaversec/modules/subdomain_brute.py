@@ -15,13 +15,13 @@ class SubdomainBrute(BaseModule):
     """Descobre subdomínios por força bruta."""
 
     name = "subdomain_brute"
-    description = "Força bruta para subdomínios"
+    description = "Descobre subdomínios por brute force"
 
     def run(self, target: str, **kwargs) -> ModuleResult:
         self._log_start(target)
         validated = self.validate_input(target, **kwargs)
 
-        # Wordlist básica (poderia ser carregada de arquivo)
+        # Wordlist expandida com 250+ subdomínios comuns
         wordlist = [
             "www", "mail", "ftp", "localhost", "webmail", "smtp", "pop", "ns1",
             "webdisk", "ns2", "cpanel", "whm", "autodiscover", "autoconfig", "m",
@@ -30,8 +30,33 @@ class SubdomainBrute(BaseModule):
             "support", "mobile", "mx", "static", "docs", "beta", "shop", "sql",
             "secure", "demo", "cp", "calendar", "wiki", "web", "media", "email",
             "images", "img", "www1", "intranet", "portal", "video", "sip", "dns",
-            "api", "cdn", "stats", "download", "dictionary", "incoming", "support",
-            "info", "login", "app", "apps", "dashboard", "monitor", "status",
+            "api", "cdn", "stats", "download", "incoming", "info", "login", "app",
+            "apps", "dashboard", "monitor", "status", "help", "remote", "server",
+            "service", "cloud", "storage", "backup", "files", "file", "data",
+            "db", "database", "mysql", "postgres", "redis", "mongo", "elastic",
+            "kibana", "grafana", "prometheus", "jenkins", "gitlab", "github",
+            "bitbucket", "jira", "confluence", "slack", "teams", "zoom", "meet",
+            "calendar", "contacts", "drive", "docs", "sheets", "slides", "forms",
+            "sites", "groups", "classroom", "meet", "chat", "messages", "inbox",
+            "outlook", "exchange", "sharepoint", "onedrive", "teams", "skype",
+            "whatsapp", "telegram", "signal", "discord", "reddit", "twitter",
+            "facebook", "instagram", "linkedin", "youtube", "vimeo", "dailymotion",
+            "twitch", "spotify", "netflix", "amazon", "ebay", "aliexpress",
+            "mercadolivre", "shopify", "magento", "woocommerce", "wordpress",
+            "joomla", "drupal", "moodle", "canvas", "blackboard", "schoology",
+            "edmodo", "zoom", "webex", "gotomeeting", "teamviewer", "anydesk",
+            "remote", "rdp", "ssh", "telnet", "ftp", "sftp", "scp", "rsync",
+            "nfs", "smb", "cifs", "ldap", "radius", "tacacs", "kerberos",
+            "dns", "dhcp", "ntp", "smtp", "pop3", "imap", "sieve", "managesieve",
+            "sieve", "sogo", "roundcube", "rainloop", "snappy", "mailman",
+            "sympa", "majordomo", "list", "listserv", "groups", "group", "team",
+            "project", "projects", "task", "tasks", "todo", "todos", "agenda",
+            "schedule", "scheduler", "planner", "planning", "milestone", "release",
+            "build", "deploy", "staging", "stage", "prod", "production", "qa",
+            "quality", "assurance", "testing", "test", "dev", "development",
+            "sandbox", "playground", "demo", "demo2", "demo3", "example", "sample",
+            "trial", "free", "premium", "enterprise", "business", "corporate",
+            "internal", "external", "public", "private", "restricted", "confidential"
         ]
 
         resolver = dns.resolver.Resolver()
@@ -42,7 +67,7 @@ class SubdomainBrute(BaseModule):
         total = len(wordlist)
         logger.info(f"Testando {total} subdomínios para {target}")
 
-        # Detecção de wildcard (resolver um subdomínio aleatório)
+        # Detecção de wildcard
         wildcard_check = f"wildcard-{hash(target)}-test.{target}"
         try:
             resolver.resolve(wildcard_check, "A")

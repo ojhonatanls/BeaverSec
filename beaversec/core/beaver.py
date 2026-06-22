@@ -82,6 +82,7 @@ class Beaver:
         """Exporta os resultados no formato especificado."""
         exporters = {
             "json": JSONExporter,
+            "csv": CSVExporter,
             "html": HTMLExporter,
             "csv": CSVExporter,
         }

@@ -5,37 +5,25 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environments
-.venv/
+# Virtual environment
 venv/
+.venv/
 env/
-.Python
+ENV/
 
-# Distribution / build
-build/
-dist/
-*.egg-info/
-
-# Python artifacts
-*.pyc
-*.pyo
-*.pyd
-
-# Logs and reports
-*.log
-report_*.json
-report_*.html
-
-# Data directory (scan results, temporary files)
-data/
-
-# Test and type-check caches
-.pytest_cache/
-.mypy_cache/
-
-# IDEs
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# BeaverSec specific
+data/
+logs/
+resultado.*
+*.log
+config.yaml
+!example-config.yaml
 
 # OS
 .DS_Store
