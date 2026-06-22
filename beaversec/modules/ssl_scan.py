@@ -3,6 +3,7 @@
 import ssl
 import socket
 import datetime
+from datetime import timezone
 from typing import Dict, Any
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -34,20 +35,25 @@ def run(target: str, **kwargs) -> Dict[str, Any]:
                     if ext.oid._name == 'subjectAltName':
                         san = [str(name) for name in ext.value]
                 
-                days_left = (not_after - datetime.datetime.now()).days
+                valid_days = (not_after - datetime.datetime.now()).days
                 cipher = ssock.cipher()
                 
                 return {
+                    "module_name": "ssl_scan",
                     "target": target,
-                    "port": port,
-                    "subject": str(subject),
-                    "issuer": str(issuer),
-                    "valid_from": str(not_before),
-                    "valid_to": str(not_after),
-                    "days_left": days_left,
-                    "valid": days_left > 0,
-                    "subject_alt_names": san,
-                    "cipher": f"{cipher[0]} ({cipher[1]}, {cipher[2]} bits)"
+                    "status": "success",
+                    "data": {
+                        "cert_info": {
+                            "subject": str(subject),
+                            "issuer": str(issuer),
+                            "valid_from": str(not_before),
+                            "valid_to": str(not_after),
+                            "subject_alt_names": san
+                        },
+                        "valid_days": valid_days,
+                        "cipher": f"{cipher[0]} ({cipher[1]}, {cipher[2]} bits)"
+                    },
+                    "timestamp": datetime.datetime.now(timezone.utc).isoformat()
                 }
                 
     except socket.timeout:
