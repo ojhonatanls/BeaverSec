@@ -9,7 +9,7 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 
@@ -63,7 +63,7 @@ class BaseModule(ABC):
         """
         if output_file is None:
             # default: save with timestamped filename
-            ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
             output_file = os.path.join(self.data_dir, f"{result.get('module_name', 'module')}_{ts}.json")
 
         try:
@@ -87,7 +87,7 @@ class BaseModule(ABC):
         - error: present only on failure
         """
         module_name = getattr(self, "__module_name__", self.__class__.__name__)
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         try:
             self.validate_target(target)
