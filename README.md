@@ -82,6 +82,7 @@ nvd:
 
 securitytrails:
   api_key: "YOUR_SECURITYTRAILS_API_KEY"
+```
 
 As opções da CLI sobrescrevem os valores do arquivo de configuração.
 
