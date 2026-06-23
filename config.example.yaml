@@ -5,7 +5,7 @@
 # Request a free API key at: https://nvd.nist.gov/developers/request-an-api-key
 # After activation, include it in your requests to maintain rate limits.
 nvd:
-  api_key: "a4e0adb2-7cfe-4a52-8020-e2c3fd71c03f"
+  api_key: "YOUR_NVD_API_KEY"
 
 # --- SecurityTrails API ---
 # Your API key can be found or created in the SecurityTrails control panel.
@@ -18,7 +18,7 @@ securitytrails:
 # Get your API key from your Shodan account page.
 # Used for the 'shodan_enum' module.
 shodan:
-  api_key: "6794GjG9zOPcIrrUKqPUKaFcFJ6UlgY6"
+  api_key: "YOUR_SHODAN_API_KEY"
 
 # --- Rate Limiting and Timeouts ---
 rate_limit: 200  # default rate tokens per second for token bucket
