@@ -1,18 +1,18 @@
-BeaverSec - Segurança Ofensiva Modular (v4.0)
+﻿BeaverSec - Segurança Ofensiva Modular (v4.0)
 ==============================================
 
 Visão Geral
 
-BeaverSec é um framework de segurança ofensiva modular projetado para reconhecimento, enumeração e análise de vulnerabilidades. A v4.0 representa uma reformulação completa com foco em segurança, performance e arquitetura robusta.
+"BeaverSec é um framework de segurança ofensiva modular projetado para reconhecimento, enumeração e análise de vulnerabilidades. A v4.0 representa uma reformulação completa com foco em segurança, performance e arquitetura robusta."
 Principais Características
 
     Arquitetura Modular: Sistema baseado em plugins com descoberta automática de módulos
 
-    Segurança em Primeiro Lugar: Sanitização de entradas, logging auditável e validação rigorosa
+"    Segurança em Primeiro Lugar: Sanitização de entradas, logging auditável e validação rigorosa"
 
-    Alta Performance: Processamento assíncrono, rate limiting e connection pooling
+"    Alta Performance: Processamento assíncrono, rate limiting e connection pooling"
 
-    Multiplataforma: Suporte nativo para Windows, Linux e macOS
+"    Multiplataforma: Suporte nativo para Windows, Linux e macOS"
 
     Zero Dependências Externas: Utiliza apenas bibliotecas padrão do Python
 
@@ -24,7 +24,7 @@ ping_sweep	Varredura ICMP e ARP para descoberta de hosts
 port_scanner	Escaneamento TCP com detecção de serviços
 syn_scan	SYN stealth scan para varredura sigilosa
 udp_scan	Escaneamento UDP para serviços baseados em UDP
-dns_enum	Enumeração de registros DNS (A, AAAA, MX, NS, TXT, etc.)
+"dns_enum	Enumeração de registros DNS (A, AAAA, MX, NS, TXT, etc.)"
 dns_zone_transfer	Teste de transferência de zona DNS
 subdomain_brute	Força bruta de subdomínios com wordlist
 ssl_scan	Análise de certificados SSL/TLS
@@ -78,7 +78,7 @@ beaversec run <module_name> <target>
 Exemplos:
 text
 
-beaversec run port_scanner 192.168.1.1 -p 22,80,443
+"beaversec run port_scanner 192.168.1.1 -p 22,80,443"
 beaversec run subdomain_brute example.com
 beaversec run dns_enum example.com
 
@@ -86,17 +86,17 @@ Exportadores de Resultados
 JSON
 text
 
-beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o resultado.json
+"beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o resultado.json"
 
 HTML
 text
 
-beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o resultado.html --format html
+"beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o resultado.html --format html"
 
 CSV
 text
 
-beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o resultado.csv --format csv
+"beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o resultado.csv --format csv"
 
 Configuração
 
@@ -113,11 +113,11 @@ max_results: 10000
 
 # Proxy Configuration
 proxy:
-  url: ""
-  username: ""
-  password: ""
+"  url: """""
+"  username: """""
+"  password: """""
   use_tor: false
-  tor_proxy: "socks5://127.0.0.1:9050"
+"  tor_proxy: ""socks5://127.0.0.1:9050"""
 
 # Security Settings
 security:
@@ -126,16 +126,16 @@ security:
   allow_loopback: false
 
 # API Keys (configure via environment variables for security)
-# SHODAN_API_KEY: ""
-# NVD_API_KEY: ""
-# SECURITYTRAILS_API_KEY: ""
+"# SHODAN_API_KEY: """""
+"# NVD_API_KEY: """""
+"# SECURITYTRAILS_API_KEY: """""
 
-Nota: As opções da CLI sobrescrevem os valores do arquivo de configuração. Para maior segurança, configure as chaves de API como variáveis de ambiente:
+"Nota: As opções da CLI sobrescrevem os valores do arquivo de configuração. Para maior segurança, configure as chaves de API como variáveis de ambiente:"
 text
 
-export SHODAN_API_KEY="sua_chave_aqui"
-export NVD_API_KEY="sua_chave_aqui"
-export SECURITYTRAILS_API_KEY="sua_chave_aqui"
+"export SHODAN_API_KEY=""sua_chave_aqui"""
+"export NVD_API_KEY=""sua_chave_aqui"""
+"export SECURITYTRAILS_API_KEY=""sua_chave_aqui"""
 
 Novos Recursos na v4.0
 🔒 Segurança Aprimorada
@@ -148,7 +148,7 @@ Novos Recursos na v4.0
 
     Validação de alvos com bloqueio de redes privadas
 
-    Eliminação total de eval(), exec() e subprocessos inseguros
+"    Eliminação total de eval(), exec() e subprocessos inseguros"
 
 ⚡ Performance e Robustez
 
@@ -170,7 +170,7 @@ Novos Recursos na v4.0
 
     Estrutura de validação centralizada
 
-    Reporters para múltiplos formatos (JSON, HTML, CSV)
+"    Reporters para múltiplos formatos (JSON, HTML, CSV)"
 
     Suporte nativo multiplataforma
 
@@ -190,9 +190,9 @@ text
 
 beaversec/
 ├── cli/          # Interface de linha de comando
-├── core/         # Núcleo do framework (segurança, validação, base)
+"├── core/         # Núcleo do framework (segurança, validação, base)"
 ├── modules/      # Módulos de scanner (16 módulos)
-├── utils/        # Utilitários (logging, credenciais, rede, rate limiter)
+"├── utils/        # Utilitários (logging, credenciais, rede, rate limiter)"
 └── config/       # Configuração e templates
 
 Desenvolvimento
