@@ -113,6 +113,7 @@ class ModuleManager:
             self.logger.warning(f"Modules directory not found: {module_dir}")
             return discovered
 
+        # Use Path object for module discovery
         for module_info in pkgutil.iter_modules([str(module_dir)]):
             module_name = module_info.name
 
