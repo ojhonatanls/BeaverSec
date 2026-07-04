@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any, Dict, List
+from ipaddress import ip_address, ip_network
 
 import click
 
@@ -48,6 +50,73 @@ def validate_port_range(ports: str) -> List[int]:
             raise ValueError(f"Invalid port format: {port_spec}") from e
     
     return valid_ports
+
+
+def validate_target(target: str) -> str:
+    """Validate target as IP address, CIDR network, or hostname.
+    
+    Args:
+        target: Target IP, CIDR network, or hostname
+        
+    Returns:
+        str: The validated target
+        
+    Raises:
+        ValueError: If target format is invalid
+    """
+    if not target or not target.strip():
+        raise ValueError("Target cannot be empty")
+    
+    target = target.strip()
+    
+    # Try to parse as IP address
+    try:
+        ip_address(target)
+        return target
+    except ValueError:
+        pass
+    
+    # Try to parse as CIDR network
+    try:
+        ip_network(target, strict=False)
+        return target
+    except ValueError:
+        pass
+    
+    # Validate as hostname/domain
+    hostname_pattern = re.compile(
+        r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*'
+        r'[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$'
+    )
+    
+    if hostname_pattern.match(target):
+        return target
+    
+    raise ValueError(f"Invalid target format: {target}")
+
+
+def validate_method(method: str, valid_methods: List[str]) -> str:
+    """Validate method against allowed values.
+    
+    Args:
+        method: Method to validate
+        valid_methods: List of allowed methods
+        
+    Returns:
+        str: The validated method
+        
+    Raises:
+        ValueError: If method is not in allowed list
+    """
+    if not method:
+        return method
+    
+    if method not in valid_methods:
+        raise ValueError(
+            f"Invalid method '{method}'. Allowed: {', '.join(valid_methods)}"
+        )
+    
+    return method
 
 
 @click.group()
@@ -136,6 +205,14 @@ def run(ctx: click.Context, module_name: str, target: str, ports: str, method: s
         logger.warning(f"Nenhum argumento registrado para '{module_name}'")
         click.echo(f"[WARNING] No registered arguments for '{module_name}'", err=True)
     
+    # Validate target argument
+    try:
+        target = validate_target(target)
+    except ValueError as e:
+        logger.error(f"Target validation failed: {e}")
+        click.echo(f"[ERROR] {e}", err=True)
+        raise click.Abort()
+    
     # Parse and validate ports
     port_list: List[int] = []
     if ports:
@@ -143,6 +220,16 @@ def run(ctx: click.Context, module_name: str, target: str, ports: str, method: s
             port_list = validate_port_range(ports)
         except ValueError as e:
             logger.error(f"Formato de portas inválido: {e}")
+            click.echo(f"[ERROR] {e}", err=True)
+            raise click.Abort()
+    
+    # Validate method if provided
+    if method:
+        valid_methods = ["tcp", "udp", "syn", "ack", "fin", "null"]
+        try:
+            method = validate_method(method, valid_methods)
+        except ValueError as e:
+            logger.error(f"Method validation failed: {e}")
             click.echo(f"[ERROR] {e}", err=True)
             raise click.Abort()
     
