@@ -34,6 +34,13 @@ Homepage = "https://github.com/ojhonatanls/BeaverSec"
 Repository = "https://github.com/ojhonatanls/BeaverSec"
 Issues = "https://github.com/ojhonatanls/BeaverSec/issues"
 
+[project.scripts]
+beaversec = "beaversec.cli:cli"
+
+[tool.setuptools.packages.find]
+include = ["beaversec*"]
+exclude = ["assets*", "tests*", "scripts*", "venv*"]
+
 [tool.black]
 line-length = 88
 target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
