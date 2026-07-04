@@ -69,4 +69,4 @@ class NetworkError(BeaverSecException):
 class DataError(BeaverSecException):
     """Raised for data processing errors."""
 
-    passss
+    pass
