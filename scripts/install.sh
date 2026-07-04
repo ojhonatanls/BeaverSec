@@ -8,44 +8,46 @@ echo "======================"
 
 # Check Python version
 if ! command -v python3 &> /dev/null; then
-    echo "Error: Python 3.8+ is required but not found"
+    echo "[ERROR] Python 3.8+ is required but not found"
     exit 1
 fi
 
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-if (( $(echo "$PYTHON_VERSION < 3.8" | bc -l) )); then
-    echo "Error: Python 3.8+ required (found $PYTHON_VERSION)"
+PYTHON_MAJOR=$(python3 -c 'import sys; print(sys.version_info.major)')
+PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
+
+if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]); then
+    echo "[ERROR] Python 3.8+ required (found $PYTHON_VERSION)"
     exit 1
 fi
 
-echo "Found Python $PYTHON_VERSION"
+echo "[OK] Found Python $PYTHON_VERSION"
 
 # Create virtual environment
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
-    python3 -m venv venv
+    python3 -m venv venv || { echo "[ERROR] Failed to create virtual environment"; exit 1; }
 fi
 
-# Activate virtual environment
-source venv/bin/activate
-
-# Upgrade pip
+# Upgrade pip using absolute path (no source activation)
 echo "Upgrading pip..."
-pip install --upgrade pip
+venv/bin/pip install --upgrade pip || { echo "[ERROR] Failed to upgrade pip"; exit 1; }
 
 # Install dependencies
 echo "Installing dependencies..."
-pip install -r requirements.txt
+venv/bin/pip install -r requirements.txt || { echo "[ERROR] Failed to install dependencies"; exit 1; }
 
 # Install development dependencies if requested
 if [ "$1" = "--dev" ]; then
     echo "Installing development dependencies..."
-    pip install -r requirements-dev.txt
+    if [ -f "requirements-dev.txt" ]; then
+        venv/bin/pip install -r requirements-dev.txt || { echo "[ERROR] Failed to install dev dependencies"; exit 1; }
+    fi
 fi
 
 # Install BeaverSec in development mode
 echo "Installing BeaverSec..."
-pip install -e .
+venv/bin/pip install -e . || { echo "[ERROR] Failed to install BeaverSec"; exit 1; }
 
 # Create configuration directory
 mkdir -p ~/.beaversec
@@ -55,7 +57,9 @@ mkdir -p ~/.beaversec/credentials
 # Create default configuration
 if [ ! -f ~/.beaversec/config.yaml ]; then
     echo "Creating default configuration..."
-    cp beaversec/config/templates/config.yaml.template ~/.beaversec/config.yaml
+    if [ -f beaversec/config/templates/config.yaml.template ]; then
+        cp beaversec/config/templates/config.yaml.template ~/.beaversec/config.yaml || { echo "[WARNING] Could not copy config template"; }
+    fi
 fi
 
 # Set permissions
@@ -63,7 +67,7 @@ chmod 755 ~/.beaversec
 chmod 700 ~/.beaversec/credentials
 
 echo ""
-echo "Installation complete!"
+echo "[OK] Installation complete!"
 echo ""
 echo "To start using BeaverSec:"
 echo "  source venv/bin/activate"
