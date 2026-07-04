@@ -17,6 +17,39 @@ from beaversec.core.logging import setup_logging, set_correlation_id, get_logger
 from beaversec.core.exceptions import ModuleError, ConfigError
 
 
+def validate_port_range(ports: str) -> List[int]:
+    """Validate and parse port specifications.
+    
+    Args:
+        ports: Comma-separated port numbers or ranges
+        
+    Returns:
+        List of valid port numbers
+        
+    Raises:
+        ValueError: If ports are invalid
+    """
+    valid_ports = []
+    
+    if not ports:
+        return valid_ports
+    
+    for port_spec in ports.split(","):
+        port_spec = port_spec.strip()
+        if not port_spec:
+            continue
+            
+        try:
+            port_num = int(port_spec)
+            if not (1 <= port_num <= 65535):
+                raise ValueError(f"Port {port_num} out of range (1-65535)")
+            valid_ports.append(port_num)
+        except ValueError as e:
+            raise ValueError(f"Invalid port format: {port_spec}") from e
+    
+    return valid_ports
+
+
 @click.group()
 @click.option("--config", "-c", type=click.Path(), default="config.yaml", help="Path to config.yaml")
 @click.option("--debug", is_flag=True, default=False, help="Enable debug logging")
@@ -57,7 +90,7 @@ def list(ctx: click.Context) -> None:
     module_args = MODULE_ARGS.get_all()
     
     for module_name in sorted(MODULES.keys()):
-        click.echo(f"\n📦 {module_name}")
+        click.echo(f"\n[MODULE] {module_name}")
         
         args = module_args.get(module_name, [])
         if not args:
@@ -93,7 +126,7 @@ def run(ctx: click.Context, module_name: str, target: str, ports: str, method: s
     # Validate module exists
     if module_name not in MODULES:
         logger.error(f"Módulo '{module_name}' não encontrado")
-        click.echo(f"❌ Module '{module_name}' not found.", err=True)
+        click.echo(f"[ERROR] Module '{module_name}' not found.", err=True)
         click.echo(f"Use 'beaversec list' to see available modules.", err=True)
         raise click.Abort()
     
@@ -101,16 +134,16 @@ def run(ctx: click.Context, module_name: str, target: str, ports: str, method: s
     module_args_def = MODULE_ARGS.get_args(module_name)
     if not module_args_def:
         logger.warning(f"Nenhum argumento registrado para '{module_name}'")
-        click.echo(f"⚠️  Warning: No registered arguments for '{module_name}'", err=True)
+        click.echo(f"[WARNING] No registered arguments for '{module_name}'", err=True)
     
-    # Parse ports if provided
+    # Parse and validate ports
     port_list: List[int] = []
     if ports:
         try:
-            port_list = [int(p.strip()) for p in ports.split(",") if p.strip()]
-        except ValueError:
-            logger.error(f"Formato de portas inválido: {ports}")
-            click.echo(f"❌ Invalid ports format. Expected comma-separated integers.", err=True)
+            port_list = validate_port_range(ports)
+        except ValueError as e:
+            logger.error(f"Formato de portas inválido: {e}")
+            click.echo(f"[ERROR] {e}", err=True)
             raise click.Abort()
     
     # Prepare module arguments
@@ -139,13 +172,13 @@ def run(ctx: click.Context, module_name: str, target: str, ports: str, method: s
         module = module_cls()
         
         logger.info(f"Executando {module_name} contra {target}")
-        click.echo(f"🔍 Running {module_name} against {target}...")
+        click.echo(f"[INFO] Running {module_name} against {target}...")
         
         # Run async
         result = asyncio.run(module.run(**module_kwargs))
         
         logger.info(f"{module_name} concluído com sucesso")
-        click.echo(f"✅ {module_name} completed successfully.")
+        click.echo(f"[OK] {module_name} completed successfully.")
         click.echo(f"\nResult:")
         click.echo(str(result))
         
@@ -154,18 +187,18 @@ def run(ctx: click.Context, module_name: str, target: str, ports: str, method: s
             try:
                 with open(output, "w") as f:
                     json.dump(result, f, indent=2, default=str)
-                click.echo(f"\n💾 Results saved to {output}")
+                click.echo(f"\n[OK] Results saved to {output}")
             except Exception as e:
                 logger.error(f"Erro ao salvar arquivo: {e}")
-                click.echo(f"❌ Error saving output: {e}", err=True)
+                click.echo(f"[ERROR] Error saving output: {e}", err=True)
     
     except ModuleError as e:
         logger.error(f"Erro no módulo: {e}")
-        click.echo(f"❌ Module error: {e}", err=True)
+        click.echo(f"[ERROR] Module error: {e}", err=True)
         raise click.Abort()
     except Exception as e:
         logger.error(f"Erro inesperado: {e}")
-        click.echo(f"❌ Unexpected error: {e}", err=True)
+        click.echo(f"[ERROR] Unexpected error: {e}", err=True)
         if ctx.obj.get("debug"):
             import traceback
             traceback.print_exc()
@@ -178,32 +211,32 @@ def check(ctx: click.Context) -> None:
     """Check configuration and API connectivity."""
     config_path = ctx.obj.get("config_path", "config.yaml")
     
-    click.echo("🔍 Checking BeaverSec configuration...\n")
+    click.echo("[INFO] Checking BeaverSec configuration...\n")
     
     results = check_config(config_path)
     
     # Config file
-    status = "✅" if results["config_file_exists"] else "❌"
+    status = "[OK]" if results["config_file_exists"] else "[ERROR]"
     click.echo(f"{status} Config file exists: {results['config_file_exists']}")
     
     # Config validity
-    status = "✅" if results["config_valid"] else "❌"
+    status = "[OK]" if results["config_valid"] else "[ERROR]"
     click.echo(f"{status} Config is valid: {results['config_valid']}")
     
     # API keys
     if results.get("api_keys_configured"):
-        click.echo("\n🔑 API Keys:")
+        click.echo("\n[INFO] API Keys:")
         for api_key, configured in results["api_keys_configured"].items():
-            status = "✅" if configured else "⚪"
+            status = "[OK]" if configured else "[NOT_CONFIGURED]"
             click.echo(f"  {status} {api_key}: {'Configured' if configured else 'Not configured'}")
     
     # Errors
     if results["errors"]:
-        click.echo("\n❌ Errors:")
+        click.echo("\n[ERROR] Errors:")
         for error in results["errors"]:
             click.echo(f"  - {error}")
     else:
-        click.echo("\n✅ All checks passed!")
+        click.echo("\n[OK] All checks passed!")
 
 
 if __name__ == "__main__":
