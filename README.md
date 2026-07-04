@@ -134,6 +134,8 @@ Guidelines for contributors:
 
     $ pytest -q
 
+See CONTRIBUTING.md for detailed guidelines.
+
 License
 -------
 
