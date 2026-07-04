@@ -1,7 +1,7 @@
 # Preserve executable permissions for shell scripts
-*.sh export-ignore
-install.sh export-ignore
-scripts/install.sh export-ignore
+*.sh text eol=lf
+install.sh text eol=lf
+scripts/install.sh text eol=lf
 
 # Text files
 *.md text
