@@ -43,11 +43,12 @@ Prerequisites: Python 3.8 or later
     $ git clone https://github.com/ojhonatanls/BeaverSec.git
     $ cd BeaverSec
 
-2. Run the installation script:
+2. Run the installation script from the repository root:
 
-    $ ./scripts/install.sh
+    $ ./install.sh
 
 The script will:
+- Set execute permissions on installation scripts
 - Check for Python 3.8+
 - Create a virtual environment
 - Install all dependencies
@@ -61,14 +62,16 @@ The script will:
 
     $ beaversec --help
 
-How to use
-----------
+Quick Start
+-----------
+
+After installation and activation:
 
 List available modules:
 
     $ beaversec list
 
-Run a module:
+Run a module against a target:
 
     $ beaversec run ping_sweep 192.168.1.0/24
     $ beaversec run port_scanner 192.168.1.1 -p 22,80,443
@@ -135,6 +138,24 @@ Guidelines for contributors:
     $ pytest -q
 
 See CONTRIBUTING.md for detailed guidelines.
+
+Troubleshooting
+---------------
+
+Installation fails with "Permission denied":
+    The install.sh script should have execute permissions automatically set.
+    If not, run: chmod +x ./install.sh
+
+Python 3.8+ not found:
+    Install Python 3.8 or later using your package manager:
+    - Ubuntu/Debian: sudo apt-get install python3.8 python3.8-venv
+    - Fedora: sudo dnf install python3.8
+    - macOS: brew install python@3.8
+
+Virtual environment issues:
+    Delete the venv directory and reinstall:
+    $ rm -rf venv
+    $ ./install.sh
 
 License
 -------
