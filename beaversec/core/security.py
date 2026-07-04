@@ -20,23 +20,37 @@ class SecurityContext:
         blocked_networks: Set of blocked network ranges
         max_targets: Maximum number of targets allowed
         allowed_protocols: Set of allowed protocols
+        block_private_networks: Whether to block private networks (configurable)
     """
 
-    def __init__(self):
-        """Initialize security context with default policies."""
+    def __init__(self, block_private_networks: bool = True):
+        """Initialize security context with default policies.
+        
+        Args:
+            block_private_networks: Whether to block private network addresses.
+                                   Can be overridden via config.yaml
+        """
         self.logger = AuditLogger.get_logger("security")
         self.allowed_networks: Set[str] = set()
+        self.block_private_networks = block_private_networks
+        
         self.blocked_networks: Set[str] = {
             "0.0.0.0/8",
-            "10.0.0.0/8",
-            "127.0.0.0/8",
             "169.254.0.0/16",
-            "172.16.0.0/12",
-            "192.168.0.0/16",
             "224.0.0.0/4",
             "240.0.0.0/4",
             "255.255.255.255/32",
         }
+        
+        # Add private networks to blocked list if configured
+        if self.block_private_networks:
+            self.blocked_networks.update({
+                "10.0.0.0/8",
+                "127.0.0.0/8",
+                "172.16.0.0/12",
+                "192.168.0.0/16",
+            })
+        
         self.max_targets = 1000
         self.allowed_protocols = {"tcp", "udp", "icmp", "http", "https", "dns"}
         self._initialize_from_config()
@@ -122,18 +136,21 @@ class SecurityContext:
 
     def _validate_ip(self, ip: Any) -> bool:
         """Validate IP address against security policies."""
-        # Block private and reserved addresses
-        if ip.is_private:
-            raise SecurityException(f"Private IP address blocked: {ip}")
-
+        # Block loopback addresses
         if ip.is_loopback:
             raise SecurityException(f"Loopback IP address blocked: {ip}")
 
+        # Block multicast addresses
         if ip.is_multicast:
             raise SecurityException(f"Multicast IP address blocked: {ip}")
 
+        # Block unspecified addresses
         if ip.is_unspecified:
             raise SecurityException(f"Unspecified IP address blocked: {ip}")
+
+        # Block private addresses if configured
+        if self.block_private_networks and ip.is_private:
+            raise SecurityException(f"Private IP address blocked: {ip}")
 
         # Check against blocked networks
         if isinstance(ip, (IPv4Address, IPv6Address)):
@@ -202,7 +219,7 @@ class SecurityContext:
     def _validate_output_path(self, path: str) -> str:
         """Validate output file path."""
         # Prevent path traversal
-        if ".." in path or "/" in path or "\\" in path:
+        if ".." in path:
             raise SecurityException("Invalid output path: path traversal detected")
 
         # Check directory exists
