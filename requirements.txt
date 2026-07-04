@@ -1,5 +1,10 @@
-# BeaverSec dependencies
-# All packages are from the Python standard library
-
-# No external dependencies required
-# All required modules are included in the standard library
+click>=8.1
+pydantic>=1.10
+aiohttp>=3.8
+pyyaml>=6.0
+dnspython>=2.3
+shodan>=1.27
+pysnmp>=4.4
+scapy>=2.4
+cryptography>=41.0
+pytest>=7.0
