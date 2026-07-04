@@ -1,0 +1,21 @@
+# Preserve executable permissions for shell scripts
+*.sh export-ignore
+install.sh export-ignore
+scripts/install.sh export-ignore
+
+# Text files
+*.md text
+*.txt text
+*.yaml text
+*.yml text
+*.json text
+*.toml text
+*.ini text
+
+# Python files
+*.py text eol=lf
+
+# Binary files
+*.pyc binary
+*.so binary
+*.pyd binary
