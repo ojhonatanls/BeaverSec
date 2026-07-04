@@ -23,10 +23,12 @@ fi
 
 echo "[OK] Found Python $PYTHON_VERSION"
 
-# Create virtual environment
+# Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv venv || { echo "[ERROR] Failed to create virtual environment"; exit 1; }
+else
+    echo "[OK] Virtual environment already exists"
 fi
 
 # Upgrade pip using absolute path (no source activation)
@@ -67,7 +69,7 @@ chmod 755 ~/.beaversec
 chmod 700 ~/.beaversec/credentials
 
 echo ""
-echo "[OK] Installation complete!"
+echo "[OK] Installation completed successfully!"
 echo ""
 echo "To start using BeaverSec:"
 echo "  source venv/bin/activate"
