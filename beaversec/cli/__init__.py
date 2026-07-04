@@ -1,5 +1,5 @@
-"""Command Line Interface package for BeaverSec."""
+"""BeaverSec CLI package."""
 
-from beaversec.cli.commands import main
+from beaversec.cli.commands import main as cli
 
-__all__ = ["main"]
+__all__ = ["cli"]
