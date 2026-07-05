@@ -65,6 +65,24 @@ The script will:
 Quick Start
 -----------
 
+## Using the Runner Directly (Alternative)
+
+If you encounter issues with the `beaversec` command (e.g., modules not listed) or prefer a more direct way to execute the modules, use the `beaversec_runner.py` script.
+
+1. Activate the virtual environment:
+   ```bash
+   source venv/bin/activate
+   ```
+
+2. Run the runner directly:
+   ```bash
+   python beaversec_runner.py list
+   python beaversec_runner.py run ping_sweep 192.168.1.1
+   python beaversec_runner.py run port_scanner 192.168.1.1 -p 80
+   ```
+
+**Note:** The runner currently supports only one port at a time for the `port_scanner`. To scan multiple ports, run the command separately for each port.
+
 After installation and activation:
 
 List available modules:
