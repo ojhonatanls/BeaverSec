@@ -81,7 +81,7 @@ Save results to file:
 
     $ beaversec run port_scanner 192.168.1.1 -p 22,80,443 -o results.json
 
-    ## Using the Runner Directly (Alternative)
+## Using the Runner Directly (Alternative)
 
 If you encounter issues with the `beaversec` command (e.g., modules not listed) or prefer a more direct way to execute the modules, use the `beaversec_runner.py` script.
 
