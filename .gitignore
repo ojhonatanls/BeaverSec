@@ -29,3 +29,13 @@ config.yaml
 .DS_Store
 Thumbs.db
 config.yaml
+
+# Scripts locais criados pelo usuário
+beaver
+beaver-full-scan.sh
+beaversec-run
+beaversec_list.py
+beaversec_wrapper.sh
+scan-ports.sh
+
+beaversec.egg-info/
