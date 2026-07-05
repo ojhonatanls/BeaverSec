@@ -65,7 +65,23 @@ The script will:
 Quick Start
 -----------
 
-## Using the Runner Directly (Alternative)
+After installation and activation:
+
+List available modules:
+
+    $ beaversec list
+
+Run a module against a target:
+
+    $ beaversec run ping_sweep 192.168.1.0/24
+    $ beaversec run port_scanner 192.168.1.1 -p 22,80,443
+    $ beaversec run dns_enum example.com
+
+Save results to file:
+
+    $ beaversec run port_scanner 192.168.1.1 -p 22,80,443 -o results.json
+
+    ## Using the Runner Directly (Alternative)
 
 If you encounter issues with the `beaversec` command (e.g., modules not listed) or prefer a more direct way to execute the modules, use the `beaversec_runner.py` script.
 
@@ -82,22 +98,6 @@ If you encounter issues with the `beaversec` command (e.g., modules not listed) 
    ```
 
 **Note:** The runner currently supports only one port at a time for the `port_scanner`. To scan multiple ports, run the command separately for each port.
-
-After installation and activation:
-
-List available modules:
-
-    $ beaversec list
-
-Run a module against a target:
-
-    $ beaversec run ping_sweep 192.168.1.0/24
-    $ beaversec run port_scanner 192.168.1.1 -p 22,80,443
-    $ beaversec run dns_enum example.com
-
-Save results to file:
-
-    $ beaversec run port_scanner 192.168.1.1 -p 22,80,443 -o results.json
 
 Configuration
 --------------
