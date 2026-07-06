@@ -34,6 +34,11 @@ Homepage = "https://github.com/ojhonatanls/BeaverSec"
 Repository = "https://github.com/ojhonatanls/BeaverSec"
 Issues = "https://github.com/ojhonatanls/BeaverSec/issues"
 
+[project.entry-points."beaversec.modules"]
+ping_sweep = "beaversec.modules.ping_sweep:PingSweepModule"
+port_scanner = "beaversec.modules.port_scanner:PortScannerModule"
+# note: add additional modules as they are implemented
+
 [project.scripts]
 beaversec = "beaversec.cli:cli"
 
@@ -58,7 +63,7 @@ extend-exclude = '''
   | build
   | dist
   | venv
-)/
+ )/
 '''
 
 [tool.isort]
