@@ -52,7 +52,7 @@ install_with_pip_fallback() {
     local pip_pkg
     pip_pkg="${pkg#python3-}"
     pip_pkg="${pip_pkg#python-}"
-    pip_pkg="${pip_pkg#lib}" # best-effort fallback name
+    pip_pkg="${pip_pkg#lib}"
 
     echo "[WARN] Attempting pip fallback for $pkg -> $pip_pkg"
     if command -v python3 >/dev/null 2>&1; then
@@ -90,7 +90,6 @@ install_system_packages() {
         pacman)
             echo "[INFO] Using pacman to install system dependencies"
             sudo pacman -Sy --noconfirm --needed "${pkgs[@]}" || {
-                # pacman doesn't support per-package failure easily; try individually
                 for p in "${pkgs[@]}"; do
                     if ! sudo pacman -S --noconfirm --needed "$p"; then
                         echo "[WARN] Package $p failed to install via pacman; attempting pip fallback"
@@ -117,33 +116,68 @@ install_system_packages() {
 # Attempt to install system packages (may prompt for sudo password)
 install_system_packages
 
-# Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv venv || { echo "[ERROR] Failed to create virtual environment"; exit 1; }
-else
-    echo "[OK] Virtual environment already exists"
-fi
-
-# Upgrade pip using absolute path (no source activation)
-echo "Upgrading pip..."
-venv/bin/pip install --upgrade pip || { echo "[ERROR] Failed to upgrade pip"; exit 1; }
-
-# Install dependencies
-echo "Installing dependencies..."
-venv/bin/pip install -r requirements.txt || { echo "[ERROR] Failed to install dependencies"; exit 1; }
-
-# Install development dependencies if requested
+# Install BeaverSec globally for the current user via pip --user
+PIP_ARGS=(--user)
 if [ "${1:-}" = "--dev" ]; then
-    echo "Installing development dependencies..."
-    if [ -f "requirements-dev.txt" ]; then
-        venv/bin/pip install -r requirements-dev.txt || { echo "[ERROR] Failed to install dev dependencies"; exit 1; }
+    echo "Installing BeaverSec in editable (dev) mode for current user"
+    # Try editable install with --user (may fail on some pip versions), fallback to normal editable
+    if ! python3 -m pip install -e . "${PIP_ARGS[@]}"; then
+        echo "[WARN] editable --user install failed, trying editable without --user"
+        python3 -m pip install -e . || { echo "[ERROR] Failed to install BeaverSec (editable)"; exit 1; }
+    fi
+else
+    echo "Installing BeaverSec for current user"
+    if ! python3 -m pip install . "${PIP_ARGS[@]}"; then
+        echo "[WARN] user install failed, trying editable install as fallback"
+        python3 -m pip install -e . "${PIP_ARGS[@]}" || { echo "[ERROR] Failed to install BeaverSec"; exit 1; }
     fi
 fi
 
-# Install BeaverSec in development mode
-echo "Installing BeaverSec..."
-venv/bin/pip install -e . || { echo "[ERROR] Failed to install BeaverSec"; exit 1; }
+# Determine user-local bin directory
+USER_BASE=$(python3 -m site --user-base 2>/dev/null || true)
+LOCAL_BIN="$HOME/.local/bin"
+if [ -n "$USER_BASE" ]; then
+    LOCAL_BIN="$USER_BASE/bin"
+fi
+
+# Ensure local bin exists
+mkdir -p "$LOCAL_BIN"
+
+# Ensure ~/ .local/bin is on PATH
+if ! echo ":$PATH:" | grep -q ":$LOCAL_BIN:"; then
+    echo "[INFO] $LOCAL_BIN not found in PATH. Adding to ~/.profile"
+    if ! grep -q "${LOCAL_BIN}" ~/.profile 2>/dev/null; then
+        echo "export PATH=\"\$PATH:$LOCAL_BIN\"" >> ~/.profile
+        echo "[INFO] Appended PATH update to ~/.profile. Start a new shell or run 'source ~/.profile' to use beaversec command."
+    fi
+fi
+
+# Try to locate installed entrypoint
+ENTRYPOINT="$LOCAL_BIN/beaversec"
+if [ -f "$ENTRYPOINT" ]; then
+    echo "[OK] beaversec entrypoint installed at $ENTRYPOINT"
+else
+    # Try to locate via command -v
+    INSTALLED_PATH=$(command -v beaversec || true)
+    if [ -n "$INSTALLED_PATH" ]; then
+        ENTRYPOINT="$INSTALLED_PATH"
+        echo "[OK] beaversec available at $ENTRYPOINT"
+    else
+        echo "[WARN] beaversec entrypoint not found in $LOCAL_BIN nor in PATH"
+    fi
+fi
+
+# Copy entrypoint to /usr/local/bin as fallback (best-effort)
+if [ -n "$ENTRYPOINT" ] && [ -f "$ENTRYPOINT" ]; then
+    if [ ! -w "/usr/local/bin" ]; then
+        echo "[INFO] Attempting to copy entrypoint to /usr/local/bin using sudo"
+        sudo cp "$ENTRYPOINT" /usr/local/bin/beaversec || true
+        sudo chmod 755 /usr/local/bin/beaversec || true
+    else
+        cp "$ENTRYPOINT" /usr/local/bin/beaversec || true
+        chmod 755 /usr/local/bin/beaversec || true
+    fi
+fi
 
 # Create configuration directory
 mkdir -p ~/.beaversec
@@ -159,16 +193,15 @@ if [ ! -f ~/.beaversec/config.yaml ]; then
 fi
 
 # Set permissions
-chmod 755 ~/.beaversec || true
+chmod 700 ~/.beaversec || true
 chmod 700 ~/.beaversec/credentials || true
 
+# Final message
 echo ""
 echo "[OK] Installation completed successfully!"
 echo ""
-echo "To start using BeaverSec:"
-echo "  source venv/bin/activate"
-echo "  beaversec --help"
+echo "To start using BeaverSec, ensure $LOCAL_BIN is in your PATH (a line was added to ~/.profile if it was missing)."
+echo "Run: beaversec --help"
 echo ""
-echo "Or run directly:"
-echo "  venv/bin/beaversec --help"
+echo "If 'beaversec' is still not available, open a new shell or run: source ~/.profile"
 echo ""
