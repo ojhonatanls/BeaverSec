@@ -10,7 +10,7 @@ plugin-based architecture for conducting security assessments.
 
 Key Features:
 
-- Modular plugin architecture with automatic module discovery
+- Modular plugin architecture using setuptools entry points
 - Secure input validation and sanitization
 - Structured logging with audit trail
 - Asynchronous processing for high performance
@@ -36,36 +36,31 @@ The following packages are required:
 How to install
 --------------
 
-Prerequisites: Python 3.8 or later
+Single-command installation (recommended):
 
-1. Clone the repository:
+    $ curl -sSL https://raw.githubusercontent.com/ojhonatanls/BeaverSec/main/scripts/install.sh | bash
+
+Or clone and run installer (alternate):
 
     $ git clone https://github.com/ojhonatanls/BeaverSec.git
     $ cd BeaverSec
+    $ ./scripts/install.sh
 
-2. Run the installation script from the repository root:
+Notes:
+- The installer now installs BeaverSec for the current user using `pip --user`.
+  It will try to ensure `~/.local/bin` (or the user base bin) is in your PATH
+  and will copy the `beaversec` entrypoint to `/usr/local/bin` as a fallback
+  (sudo may be required for the latter).
+- The installer is non-interactive (except for sudo password prompts) and
+  attempts to install required system packages using the native package
+  manager when available.
 
-    $ ./install.sh
-
-The script will:
-- Set execute permissions on installation scripts
-- Check for Python 3.8+
-- Create a virtual environment
-- Install all dependencies
-- Set up the BeaverSec package
-
-3. Activate the virtual environment:
-
-    $ source venv/bin/activate
-
-4. Verify installation:
+Verify installation:
 
     $ beaversec --help
 
 Quick Start
 -----------
-
-After installation and activation:
 
 List available modules:
 
@@ -81,39 +76,29 @@ Save results to file:
 
     $ beaversec run port_scanner 192.168.1.1 -p 22,80,443 -o results.json
 
-## Using the Runner Directly (Alternative)
+Runner
+------
 
-If you encounter issues with the `beaversec` command (e.g., modules not listed) or prefer a more direct way to execute the modules, use the `beaversec_runner.py` script.
-
-1. Activate the virtual environment:
-   ```bash
-   source venv/bin/activate
-   ```
-
-2. Run the runner directly:
-   ```bash
-   python beaversec_runner.py list
-   python beaversec_runner.py run ping_sweep 192.168.1.1
-   python beaversec_runner.py run port_scanner 192.168.1.1 -p 80
-   ```
-
-**Note:** The runner currently supports only one port at a time for the `port_scanner`. To scan multiple ports, run the command separately for each port.
+The project ships a small runner script `beaversec_runner.py` that can be used as
+an alternative to the `beaversec` entry point. The runner has been adapted to
+load modules via setuptools entry points (group `beaversec.modules`). Prefer the
+`beaversec` command when available.
 
 Configuration
 --------------
 
-Configuration file: ~/.beaversec/config.yaml
+Configuration file (XDG): ~/.config/beaversec/config.yaml
 
-Create this file to customize BeaverSec behavior:
+Create this file to customize BeaverSec behavior (or use environment variables):
 
     # API Keys
     shodan:
       api_key: "YOUR_SHODAN_API_KEY"
-    
+
     # Behavior
     timeout: 30
     max_threads: 10
-    
+
     # Security
     block_private_networks: true
 
@@ -140,40 +125,41 @@ Available Modules
 Contributing
 ------------
 
-Guidelines for contributors:
+Guide for adding new modules:
 
-1. Follow PEP8 style guidelines
-2. Add docstrings to all functions and classes
-3. Write tests for new modules
-4. Use conventional commit messages:
-   - fix: for bug fixes
-   - feat: for new features
-   - docs: for documentation
-   - test: for tests
+1. Create a new Python file under `beaversec/modules/` implementing a class that
+   inherits from `beaversec.core.base.BaseModule`.
+2. Implement `validate_params(self, params)` and `execute(self, params)` on the
+   class. Older modules that expose `run(target, **kwargs)` are still supported
+   by the runner for backward compatibility.
+3. Register the module in `pyproject.toml` under the entry-point group
+   `[project.entry-points."beaversec.modules"]`:
 
-5. Run tests before submitting:
+   ping_sweep = "beaversec.modules.ping_sweep:PingSweepModule"
+
+4. Test by installing the package in editable mode and running the CLI:
+
+    $ pip install -e . --user
+    $ beaversec list
+    $ beaversec run <module> <target>
+
+5. Open a PR with your changes.
+
+Testing
+-------
+
+Run unit tests:
 
     $ pytest -q
 
-See CONTRIBUTING.md for detailed guidelines.
+Integration tests are located under `tests/integration/` and are executed by the
+CI integration matrix.
 
 Troubleshooting
 ---------------
 
-Installation fails with "Permission denied":
-    The install.sh script should have execute permissions automatically set.
-    If not, run: chmod +x ./install.sh
-
-Python 3.8+ not found:
-    Install Python 3.8 or later using your package manager:
-    - Ubuntu/Debian: sudo apt-get install python3.8 python3.8-venv
-    - Fedora: sudo dnf install python3.8
-    - macOS: brew install python@3.8
-
-Virtual environment issues:
-    Delete the venv directory and reinstall:
-    $ rm -rf venv
-    $ ./install.sh
+If `beaversec` is not in PATH after installation, start a new shell or run
+`source ~/.profile` (the installer attempts to add `~/.local/bin` to your PATH).
 
 License
 -------
