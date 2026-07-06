@@ -1,4 +1,7 @@
-"""Configuration loader for BeaverSec."""
+"""Configuration loader for BeaverSec.
+
+This loader now uses the XDG standard config location: ~/.config/beaversec/config.yaml
+"""
 
 import os
 import yaml
@@ -13,8 +16,10 @@ class ConfigLoader:
     """
     Loads and validates configuration from multiple sources.
 
-    Priority: Environment variables > Config file > Defaults
+    Priority: Environment variables > Config file (XDG) > Defaults
     """
+
+    DEFAULT_CONFIG_PATH = Path(os.path.expanduser("~")) / ".config" / "beaversec" / "config.yaml"
 
     def __init__(self, config_path: Optional[Path] = None):
         """
@@ -23,7 +28,8 @@ class ConfigLoader:
         Args:
             config_path: Optional path to configuration file
         """
-        self.config_path = config_path or Path("config.yaml")
+        # If a config_path was explicitly provided, use it. Otherwise use XDG default
+        self.config_path = config_path or self.DEFAULT_CONFIG_PATH
         self.logger = AuditLogger.get_logger("config")
         self._config: Dict[str, Any] = {}
         self._loaded = False
@@ -40,6 +46,24 @@ class ConfigLoader:
         """
         if self._loaded:
             return self._config
+
+        # Ensure config dir exists with secure permissions
+        try:
+            config_dir = self.config_path.parent
+            config_dir.mkdir(parents=True, exist_ok=True)
+            # set permissions to 700
+            os.chmod(str(config_dir), 0o700)
+        except Exception:
+            # If we cannot create or set permissions, log a warning but continue
+            self.logger.warning(f"Could not ensure config directory permissions for {config_dir}")
+
+        # If a config file does not exist, create an empty file with 600 permissions
+        if not self.config_path.exists():
+            try:
+                self.config_path.write_text("# BeaverSec configuration\n")
+                os.chmod(str(self.config_path), 0o600)
+            except Exception:
+                self.logger.warning(f"Could not create default config file at {self.config_path}")
 
         # Load from file
         config = self._load_file()
