@@ -1,15 +1,27 @@
 import socket
 import concurrent.futures
-from utils.config_loader import get_setting
+from beaversec.config.loader import ConfigLoader
+
+# Simple wrapper to adapt to the project's configuration loader
+_config_loader = ConfigLoader()
+_config = None
+
+def _get_config():
+    global _config
+    if _config is None:
+        _config = _config_loader.load()
+    return _config
+
 
 def run(target, **kwargs):
     """
     Captura banners de serviços comuns e verifica versões vulneráveis.
-    Exemplo: python main.py banner_grabber 192.168.1.1
+    Exemplo: beaversec run banner_grabber 192.168.1.1
     """
-    ports = kwargs.get('ports') or get_setting('modules.banner_grabber.common_ports', [21, 22, 23, 25, 80, 443, 3306, 3389])
-    timeout = get_setting('modules.banner_grabber.grab_timeout', 5.0)
-    
+    cfg = _get_config()
+    ports = kwargs.get('ports') or cfg.get('modules', {}).get('banner_grabber', {}).get('common_ports', [21, 22, 23, 25, 80, 443, 3306, 3389])
+    timeout = cfg.get('modules', {}).get('banner_grabber', {}).get('grab_timeout', 5.0)
+
     # Banco de dados simples de vulnerabilidades (para demonstração)
     vuln_db = {
         'OpenSSH 7.4': 'CVE-2017-15906 (DoS)',
@@ -18,9 +30,9 @@ def run(target, **kwargs):
         'vsftpd 2.3.4': 'CVE-2011-2523 (Backdoor)',
         'ProFTPD 1.3.3c': 'CVE-2010-4221 (RCE)'
     }
-    
+
     results = []
-    
+
     def grab_banner(port):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,17 +42,17 @@ def run(target, **kwargs):
             sock.send(b'\n')
             banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
             sock.close()
-            
+
             # Verifica se algum padrão vulnerável aparece
             vuln_found = []
             for pattern, cve in vuln_db.items():
                 if pattern.lower() in banner.lower():
                     vuln_found.append(f"{pattern} -> {cve}")
-            
+
             return (port, banner, vuln_found)
         except Exception:
             return (port, None, [])
-    
+
     print(f"[+] Grabbing banners from {target}...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         futures = [executor.submit(grab_banner, p) for p in ports]
@@ -52,5 +64,5 @@ def run(target, **kwargs):
                 if vulns:
                     print(f"    ⚠️  Possíveis vulnerabilidades: {', '.join(vulns)}")
                 results.append((port, banner, vulns))
-    
+
     return results
