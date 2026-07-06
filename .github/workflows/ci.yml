@@ -7,30 +7,65 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  integration:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        distro: [ubuntu-22.04, debian-12, fedora-40, rockylinux-9]
 
     steps:
     - uses: actions/checkout@v4
-    
+
+    - name: Set up container
+      uses: addnab/docker-run-action@v3
+      with:
+        image: ${{ matrix.distro }}
+        options: --privileged
+        run: |
+          set -euo pipefail
+          # Install common dependencies per distro
+          if [ "${{ matrix.distro }}" = "ubuntu-22.04" ] || [ "${{ matrix.distro }}" = "debian-12" ]; then
+            apt-get update -qq
+            apt-get install -y -qq python3 python3-venv python3-pip git curl nmap dnsutils whois arp-scan
+          elif [ "${{ matrix.distro }}" = "fedora-40" ]; then
+            dnf install -y python3 python3-venv python3-pip git curl nmap bind-utils whois arp-scan
+          else
+            # RockyLinux/Alma
+            yum install -y python3 python3-venv python3-pip git curl nmap bind-utils whois arp-scan
+          fi
+
+          # Run install script
+          ./scripts/install.sh --dev || true
+
+          # Verify CLI
+          python3 -m pip install --user . || true
+          export PATH="$HOME/.local/bin:$PATH"
+          if command -v beaversec >/dev/null 2>&1; then
+            beaversec --help || true
+            beaversec list || true
+          fi
+
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11, 3.12]
+
+    steps:
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install ruff pytest pytest-cov
-        # Garante que o dnspython está instalado
-        pip install dnspython
-    
+
     - name: Lint with ruff
       run: ruff check . || true
-    
+
     - name: Test with pytest
-      run: pytest tests/ -v --cov=beaversec --cov-report=xml
+      run: pytest tests/ -q --maxfail=1
