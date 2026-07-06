@@ -1,102 +1,73 @@
-Contributing to BeaverSec
-==========================
+# Contributing to BeaverSec
 
 Thank you for your interest in contributing to BeaverSec.
 
-Code Style
-----------
+## Adding a new module
 
-- Follow PEP8 guidelines strictly
-- Use 4 spaces for indentation (no tabs)
-- Maximum line length: 100 characters
-- Use meaningful variable and function names
+BeaverSec uses a plugin-style module system. New modules should be registered as
+setuptools entry points under the `beaversec.modules` group so they can be
+discovered by the installed package and by the runner.
 
-Docstrings
-----------
+Steps to add a new module:
 
-All functions, classes, and modules must have docstrings.
+1. Create a new Python file under `beaversec/modules/` implementing a class that
+   inherits from `beaversec.core.base.BaseModule`.
 
-Example:
+   Example skeleton:
 
-    def validate_port(port: int) -> bool:
-        """Validate if port number is within valid range.
-        
-        Args:
-            port: Port number to validate
-            
-        Returns:
-            bool: True if valid (1-65535), False otherwise
-        """
-        return 1 <= port <= 65535
+```python
+from beaversec.core.base import BaseModule
 
-Commits
--------
+class MyModule(BaseModule):
+    """Short description of the module.
 
-Use conventional commit format:
+    Longer module documentation here.
+    """
 
-    fix: description of bug fix
-    feat: description of new feature
-    docs: documentation changes
-    test: test changes
-    chore: maintenance tasks
+    name = "my_module"
 
-Example:
+    def validate_params(self, params: dict) -> bool:
+        # Validate parameters (raise or return False on invalid)
+        return True
 
-    fix: add port validation to CLI
-    docs: rewrite README
-    test: add unit tests for security module
+    def execute(self, params: dict) -> dict:
+        # Implement main module logic here
+        return {"ok": True}
+```
 
-Testing
--------
+2. Register the module in `pyproject.toml` under the entry-point group
+   `[project.entry-points."beaversec.modules"]` using the format:
 
-All code changes must include tests. Run tests before submitting:
+   my_module = "beaversec.modules.my_module:MyModule"
 
-    $ pytest -q
+3. Install and test locally:
 
-Writing Tests:
+    $ pip install -e . --user
+    $ beaversec list
+    $ beaversec run my_module <target>
 
-- Place test files in tests/ directory
-- Use descriptive test function names
-- Test both success and failure cases
-- Use mocks for external dependencies
+4. Add unit tests under `tests/` covering validation and execution logic.
 
-Pull Requests
--------------
+5. Submit a Pull Request describing the module and tests.
 
-1. Fork the repository
-2. Create a feature branch: git checkout -b feature/description
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass: pytest
-6. Commit with conventional format
-7. Push to your fork
-8. Open a pull request with clear description
+### Backwards compatibility
+Older modules may expose a `run(target, **kwargs)` function or class method. The
+runner supports both `execute(params)` and legacy `run()` functions for
+backward compatibility, but new modules should follow the `BaseModule` class
+pattern.
 
-Code Review
------------
+## Code Style
 
-All pull requests will be reviewed for:
-- Code style and PEP8 compliance
-- Test coverage
-- Documentation
-- Security implications
-- Compatibility with Python 3.8+
+- Follow PEP8 guidelines
+- Use meaningful names and add docstrings
 
-Issues
-------
+## Tests
 
-Before starting work:
-- Check existing issues to avoid duplicates
-- Look for "good first issue" labels for beginners
-- Comment on the issue to indicate you'll work on it
-- Ask questions in the issue if needed
+- Place unit tests in `tests/`
+- Integration tests go in `tests/integration/`
 
-Licensing
----------
+## Commits and PRs
 
-By contributing, you agree that your code will be licensed under the MIT License.
+- Use Conventional Commits
+- Include tests and update documentation when needed
 
-Questions?
-----------
-
-Open an issue or ask in pull request comments. We're here to help!
