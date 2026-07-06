@@ -1,7 +1,7 @@
 #!/bin/bash
 # BeaverSec Installation Script for Unix-like systems
 
-set -e
+set -euo pipefail
 
 echo "BeaverSec Installation"
 echo "======================"
@@ -23,6 +23,100 @@ fi
 
 echo "[OK] Found Python $PYTHON_VERSION"
 
+# Make sure this script is executable (best-effort)
+if [ -n "${0:-}" ]; then
+    chmod +x "$0" 2>/dev/null || true
+fi
+
+# Detect package manager
+detect_pkg_manager() {
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "apt"
+    elif command -v dnf >/dev/null 2>&1; then
+        echo "dnf"
+    elif command -v pacman >/dev/null 2>&1; then
+        echo "pacman"
+    elif command -v zypper >/dev/null 2>&1; then
+        echo "zypper"
+    else
+        echo "unknown"
+    fi
+}
+
+PKG_MANAGER=$(detect_pkg_manager)
+
+install_with_pip_fallback() {
+    local pkg="$1"
+    # Try to install a python-compatible package via pip as fallback.
+    # Strip common prefixes and try reasonable package names.
+    local pip_pkg
+    pip_pkg="${pkg#python3-}"
+    pip_pkg="${pip_pkg#python-}"
+    pip_pkg="${pip_pkg#lib}" # best-effort fallback name
+
+    echo "[WARN] Attempting pip fallback for $pkg -> $pip_pkg"
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -m pip install --user "$pip_pkg" || {
+            echo "[WARN] pip fallback failed for $pip_pkg"
+        }
+    else
+        echo "[WARN] pip not available to install $pip_pkg"
+    fi
+}
+
+install_system_packages() {
+    local pkgs=(nmap python3-venv python3-pip git curl whois dnsutils arp-scan)
+
+    case "$PKG_MANAGER" in
+        apt)
+            echo "[INFO] Using apt to install system dependencies"
+            sudo apt-get update -qq || true
+            for p in "${pkgs[@]}"; do
+                if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$p"; then
+                    echo "[WARN] Package $p failed to install via apt; attempting pip fallback"
+                    install_with_pip_fallback "$p"
+                fi
+            done
+            ;;
+        dnf)
+            echo "[INFO] Using dnf to install system dependencies"
+            for p in "${pkgs[@]}"; do
+                if ! sudo dnf install -y "$p" -q; then
+                    echo "[WARN] Package $p failed to install via dnf; attempting pip fallback"
+                    install_with_pip_fallback "$p"
+                fi
+            done
+            ;;
+        pacman)
+            echo "[INFO] Using pacman to install system dependencies"
+            sudo pacman -Sy --noconfirm --needed "${pkgs[@]}" || {
+                # pacman doesn't support per-package failure easily; try individually
+                for p in "${pkgs[@]}"; do
+                    if ! sudo pacman -S --noconfirm --needed "$p"; then
+                        echo "[WARN] Package $p failed to install via pacman; attempting pip fallback"
+                        install_with_pip_fallback "$p"
+                    fi
+                done
+            }
+            ;;
+        zypper)
+            echo "[INFO] Using zypper to install system dependencies"
+            for p in "${pkgs[@]}"; do
+                if ! sudo zypper --non-interactive install "$p"; then
+                    echo "[WARN] Package $p failed to install via zypper; attempting pip fallback"
+                    install_with_pip_fallback "$p"
+                fi
+            done
+            ;;
+        *)
+            echo "[WARN] No supported package manager detected. Skipping system package installation."
+            ;;
+    esac
+}
+
+# Attempt to install system packages (may prompt for sudo password)
+install_system_packages
+
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
@@ -40,7 +134,7 @@ echo "Installing dependencies..."
 venv/bin/pip install -r requirements.txt || { echo "[ERROR] Failed to install dependencies"; exit 1; }
 
 # Install development dependencies if requested
-if [ "$1" = "--dev" ]; then
+if [ "${1:-}" = "--dev" ]; then
     echo "Installing development dependencies..."
     if [ -f "requirements-dev.txt" ]; then
         venv/bin/pip install -r requirements-dev.txt || { echo "[ERROR] Failed to install dev dependencies"; exit 1; }
@@ -65,8 +159,8 @@ if [ ! -f ~/.beaversec/config.yaml ]; then
 fi
 
 # Set permissions
-chmod 755 ~/.beaversec
-chmod 700 ~/.beaversec/credentials
+chmod 755 ~/.beaversec || true
+chmod 700 ~/.beaversec/credentials || true
 
 echo ""
 echo "[OK] Installation completed successfully!"
@@ -77,3 +171,4 @@ echo "  beaversec --help"
 echo ""
 echo "Or run directly:"
 echo "  venv/bin/beaversec --help"
+echo ""
