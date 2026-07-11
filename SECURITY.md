@@ -18,7 +18,7 @@ Security is a top priority for BeaverSec. If you discover a vulnerability, pleas
 **How to report:**
 
 1.  **Do not open a public issue.** This could expose the problem before we have a chance to release a fix.
-2.  Send the details of the vulnerability via email to: **jhonatanlucassantosofc@gmail.com**.
+2.  Send the details of the vulnerability via email to: **jhonatanlucassantos9@gmail.com**.
 3.  Alternatively, you can open a **Security Advisory** directly on GitHub. This is a secure, private channel for discussing vulnerabilities.
 
 **What to expect after reporting:**
