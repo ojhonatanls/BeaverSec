@@ -1,15 +1,18 @@
 #!/bin/bash
 # BeaverSec Root Installation Wrapper
-# This script handles permissions and delegates to scripts/install.sh
-
 set -e
 
-# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "BeaverSec Installation Wrapper"
 echo "=============================="
 echo ""
+
+# Check if scripts/install.sh exists
+if [ ! -f "$SCRIPT_DIR/scripts/install.sh" ]; then
+    echo "[ERROR] scripts/install.sh not found. Please ensure the repository is完整."
+    exit 1
+fi
 
 # Make scripts/install.sh executable
 if [ ! -x "$SCRIPT_DIR/scripts/install.sh" ]; then

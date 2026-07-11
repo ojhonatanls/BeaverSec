@@ -1,57 +1,34 @@
-"""
-Ping sweep module for BeaverSec.
-"""
-from __future__ import annotations
+"""Ping sweep module for BeaverSec."""
 
-from beaversec.core.base_module import BaseModule, ModuleResult
-from beaversec.core.registry import MODULE_ARGS, ArgDef
-from beaversec.core.logging import get_logger
-
-logger = get_logger("beaversec.modules.ping_sweep")
-
-# Registrar argumentos do módulo
-MODULE_ARGS.register(
-    "ping_sweep",
-    ArgDef(
-        name="networks",
-        type=list,
-        required=True,
-        help="Lista de alvos IP ou redes (CIDR)"
-    )
-)
-MODULE_ARGS.register(
-    "ping_sweep",
-    ArgDef(
-        name="timeout",
-        type=float,
-        required=False,
-        default=2.0,
-        help="Timeout em segundos"
-    )
-)
-
+import subprocess
+import re
+from typing import Dict, Any
+from beaversec.core.base import BaseModule, ModuleResult
+from beaversec.core.security import SecurityValidator
 
 class PingSweepModule(BaseModule):
-    """Módulo para varredura ICMP (ping sweep)."""
-    
     name = "ping_sweep"
     description = "ICMP ping sweep for host discovery"
-    
-    async def run(self, networks, timeout=2.0, **kwargs):
-        """Executa ping sweep em uma lista de redes."""
-        logger.info(f"Iniciando ping sweep em {networks}")
-        
-        # Simulação: retorna um resultado de exemplo
-        result = ModuleResult(
-            module=self.name,
-            target=str(networks),
-            success=True,
-            data={
-                "alive_hosts": networks if isinstance(networks, list) else [networks],
-                "total_scanned": len(networks) if isinstance(networks, list) else 1,
-                "timeout": timeout
-            }
-        )
-        
-        logger.info(f"Ping sweep concluído: {len(result.data['alive_hosts'])} hosts ativos")
-        return result
+    version = "1.0.0"
+
+    def validate_params(self, params: Dict[str, Any]) -> bool:
+        return "target" in params
+
+    def execute(self, params: Dict[str, Any]) -> ModuleResult:
+        target = SecurityValidator.validate_target(params.get("target", ""))
+        # Use ping command (Linux)
+        try:
+            result = subprocess.run(
+                ["ping", "-c", "1", "-W", "1", target],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return ModuleResult(success=True, data={"alive": True, "output": result.stdout})
+            else:
+                return ModuleResult(success=False, error="Host unreachable", data={"alive": False})
+        except subprocess.TimeoutExpired:
+            return ModuleResult(success=False, error="Ping timeout")
+        except Exception as e:
+            return ModuleResult(success=False, error=str(e))

@@ -1,71 +1,44 @@
-"""SSL/TLS cipher suite enumeration and vulnerability checks.
+"""SSL cipher suite scanning module for BeaverSec."""
 
-Uses ssl module for supported ciphers; for deeper probing consider using
-external tools (openssl or sslyze). This module performs a basic check by
-attempting TLS handshakes with different SSLContext ciphers.
-"""
-from __future__ import annotations
-
-import asyncio
-import logging
+import socket
 import ssl
-from typing import Any, Dict, Iterable, List
-
-from beaversec.core.rate_limiter import TokenBucket
-from beaversec.core.base_module import BaseModule
-from beaversec.config import get_config
-
-logger = logging.getLogger(__name__)
-
+from typing import Dict, Any, List
+from beaversec.core.base import BaseModule, ModuleResult
+from beaversec.core.security import SecurityValidator
 
 class SSLCipherScanModule(BaseModule):
-    """Enumerate server-supported cipher suites and check for known issues."""
-
     name = "ssl_cipher_scan"
+    description = "Enumerate supported SSL/TLS cipher suites"
+    version = "1.0.0"
 
-    COMMON_PORTS = [443, 8443]
+    def validate_params(self, params: Dict[str, Any]) -> bool:
+        return "target" in params and "port" in params
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        cfg = get_config()
-        rate = cfg.get("rate_limit", 10.0)
-        self._limiter = TokenBucket(rate=float(rate), capacity=float(rate))
+    def execute(self, params: Dict[str, Any]) -> ModuleResult:
+        target = SecurityValidator.validate_target(params.get("target", ""))
+        port = SecurityValidator.validate_port(params.get("port", 443))
 
-    async def _probe_cipher(self, host: str, port: int, cipher: str, timeout: float = 3.0) -> bool:
-        await self._limiter.acquire(1.0)
-        loop = asyncio.get_event_loop()
-        def _sync_connect() -> bool:
-            try:
-                ctx = ssl.create_default_context()
-                ctx.set_ciphers(cipher)
-                with ctx.wrap_socket(__import__("socket").socket(), server_hostname=host) as s:
-                    s.settimeout(timeout)
-                    s.connect((host, port))
-                    # perform handshake by sending no data; if handshake succeeds, cipher accepted
-                    return True
-            except Exception:
-                return False
-        return await loop.run_in_executor(None, _sync_connect)
-
-    async def enumerate(self, host: str, ports: Iterable[int] | None = None) -> Dict[str, List[str]]:
-        ports = list(ports or self.COMMON_PORTS)
-        # minimal list of candidate ciphers — extendable
-        candidates = [
-            "HIGH", "ECDHE", "AES", "AES256", "AES128", "RC4", "DES", "3DES",
-            "ECDHE-RSA-AES128-GCM-SHA256",
+        # Common cipher suites to test (simplified)
+        ciphers = [
+            'TLS_AES_256_GCM_SHA384',
+            'TLS_CHACHA20_POLY1305_SHA256',
+            'TLS_AES_128_GCM_SHA256',
+            'ECDHE-RSA-AES256-GCM-SHA384',
+            'ECDHE-RSA-AES128-GCM-SHA256',
+            'ECDHE-RSA-AES256-SHA384',
+            'ECDHE-RSA-AES128-SHA256',
+            'ECDHE-RSA-AES256-SHA',
+            'ECDHE-RSA-AES128-SHA',
         ]
-        supported: Dict[str, List[str]] = {}
-        for port in ports:
-            supported[str(port)] = []
-            for c in candidates:
-                ok = await self._probe_cipher(host, port, c)
-                if ok:
-                    supported[str(port)].append(c)
-        return supported
+        supported = []
+        for cipher in ciphers:
+            try:
+                context = ssl.create_default_context()
+                context.set_ciphers(cipher)
+                with socket.create_connection((target, port), timeout=3) as sock:
+                    with context.wrap_socket(sock, server_hostname=target) as ssock:
+                        supported.append(cipher)
+            except Exception:
+                continue
 
-    async def run(self, targets: Iterable[str], ports: Iterable[int] | None = None, **kwargs: Any) -> Dict[str, Any]:
-        out: Dict[str, Any] = {}
-        for host in targets:
-            out[host] = await self.enumerate(host, ports)
-        # vulnerability checks (POODLE/BEAST) are heuristic here
-        return out
+        return ModuleResult(success=True, data={"supported_ciphers": supported})

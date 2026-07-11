@@ -1,68 +1,30 @@
+"""Banner grabbing module for BeaverSec."""
+
 import socket
-import concurrent.futures
-from beaversec.config.loader import ConfigLoader
+from typing import Dict, Any
+from beaversec.core.base import BaseModule, ModuleResult
+from beaversec.core.security import SecurityValidator
 
-# Simple wrapper to adapt to the project's configuration loader
-_config_loader = ConfigLoader()
-_config = None
+class BannerGrabberModule(BaseModule):
+    name = "banner_grabber"
+    description = "Generic banner grabbing on a specified port"
+    version = "1.0.0"
 
-def _get_config():
-    global _config
-    if _config is None:
-        _config = _config_loader.load()
-    return _config
+    def validate_params(self, params: Dict[str, Any]) -> bool:
+        return "target" in params and "port" in params
 
+    def execute(self, params: Dict[str, Any]) -> ModuleResult:
+        target = SecurityValidator.validate_target(params.get("target", ""))
+        port = SecurityValidator.validate_port(params.get("port", 0))
 
-def run(target, **kwargs):
-    """
-    Captura banners de serviços comuns e verifica versões vulneráveis.
-    Exemplo: beaversec run banner_grabber 192.168.1.1
-    """
-    cfg = _get_config()
-    ports = kwargs.get('ports') or cfg.get('modules', {}).get('banner_grabber', {}).get('common_ports', [21, 22, 23, 25, 80, 443, 3306, 3389])
-    timeout = cfg.get('modules', {}).get('banner_grabber', {}).get('grab_timeout', 5.0)
-
-    # Banco de dados simples de vulnerabilidades (para demonstração)
-    vuln_db = {
-        'OpenSSH 7.4': 'CVE-2017-15906 (DoS)',
-        'Apache 2.4.29': 'CVE-2019-0211 (PrivEsc)',
-        'nginx 1.14.0': 'CVE-2019-9511 (DoS)',
-        'vsftpd 2.3.4': 'CVE-2011-2523 (Backdoor)',
-        'ProFTPD 1.3.3c': 'CVE-2010-4221 (RCE)'
-    }
-
-    results = []
-
-    def grab_banner(port):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(timeout)
+            sock.settimeout(3)
             sock.connect((target, port))
-            # Envia um enter para ativar banners em alguns serviços
+            # Send a newline to trigger banner
             sock.send(b'\n')
-            banner = sock.recv(1024).decode('utf-8', errors='ignore').strip()
+            banner = sock.recv(1024).decode('utf-8', errors='ignore')
             sock.close()
-
-            # Verifica se algum padrão vulnerável aparece
-            vuln_found = []
-            for pattern, cve in vuln_db.items():
-                if pattern.lower() in banner.lower():
-                    vuln_found.append(f"{pattern} -> {cve}")
-
-            return (port, banner, vuln_found)
-        except Exception:
-            return (port, None, [])
-
-    print(f"[+] Grabbing banners from {target}...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        futures = [executor.submit(grab_banner, p) for p in ports]
-        for future in concurrent.futures.as_completed(futures):
-            port, banner, vulns = future.result()
-            if banner:
-                print(f"\n  Port {port}:")
-                print(f"    Banner: {banner[:100]}{'...' if len(banner) > 100 else ''}")
-                if vulns:
-                    print(f"    ⚠️  Possíveis vulnerabilidades: {', '.join(vulns)}")
-                results.append((port, banner, vulns))
-
-    return results
+            return ModuleResult(success=True, data={"banner": banner})
+        except Exception as e:
+            return ModuleResult(success=False, error=str(e))

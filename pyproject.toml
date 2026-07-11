@@ -12,6 +12,17 @@ authors = [
     {name = "Jhonatan L. Santos", email = "ojhonatanls@gmail.com"}
 ]
 requires-python = ">=3.8"
+dependencies = [
+    "click>=8.1",
+    "pydantic>=1.10",
+    "aiohttp>=3.8",
+    "pyyaml>=6.0",
+    "dnspython>=2.3",
+    "shodan>=1.27",
+    "pysnmp>=4.4",
+    "scapy>=2.4",
+    "cryptography>=41.0",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -52,8 +63,7 @@ service_detection = "beaversec.modules.service_detection:ServiceDetectionModule"
 os_detection = "beaversec.modules.os_detection:OSDetectionModule"
 snmp_enum = "beaversec.modules.snmp_enum:SNMPEnumModule"
 arp_scan = "beaversec.modules.arp_scan:ArpScanModule"
-banner_grabber = "beaversec.modules.banner_grabber:run"
-meu_modulo = "beaversec.modules.meu_modulo:run"
+banner_grabber = "beaversec.modules.banner_grabber:BannerGrabberModule"
 
 [project.scripts]
 beaversec = "beaversec.cli:cli"
@@ -79,7 +89,7 @@ extend-exclude = '''
   | build
   | dist
   | venv
- )/
+)/
 '''
 
 [tool.isort]
@@ -105,9 +115,7 @@ warn_unused_ignores = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-ra -q --strict-markers --tb=short"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"

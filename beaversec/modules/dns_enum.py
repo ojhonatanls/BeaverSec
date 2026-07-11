@@ -1,53 +1,30 @@
-"""
-Enumeração de registros DNS.
-"""
-import logging
+"""DNS enumeration module for BeaverSec."""
 
 import dns.resolver
-
-from beaversec.core.base_module import BaseModule, ModuleResult
-
-logger = logging.getLogger(__name__)
-
+from typing import Dict, Any, List
+from beaversec.core.base import BaseModule, ModuleResult
+from beaversec.core.security import SecurityValidator
 
 class DNSEnum(BaseModule):
-    """Enumera registros DNS de um domínio."""
-
     name = "dns_enum"
-    description = "Enumeração de registros DNS"
+    description = "DNS record enumeration (A, AAAA, MX, NS, TXT, etc.)"
+    version = "1.0.0"
 
-    async def run(self, target: str, **kwargs) -> ModuleResult:
-        self._log_start(target)
-        validated = self.validate_input(target, **kwargs)
+    def validate_params(self, params: Dict[str, Any]) -> bool:
+        return "target" in params
 
-        record_types = ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA", "PTR"]
+    def execute(self, params: Dict[str, Any]) -> ModuleResult:
+        target = SecurityValidator.validate_target(params.get("target", ""))
+        record_types = ['A', 'AAAA', 'MX', 'NS', 'TXT', 'CNAME', 'SOA']
         results = {}
-
-        resolver = dns.resolver.Resolver()
-        resolver.timeout = validated.timeout
-        resolver.lifetime = validated.timeout
 
         for rtype in record_types:
             try:
-                answers = resolver.resolve(target, rtype)
+                answers = dns.resolver.resolve(target, rtype)
                 results[rtype] = [str(r) for r in answers]
-                logger.debug(f"{rtype}: {len(answers)} registros")
-            except dns.resolver.NoAnswer:
+            except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
                 results[rtype] = []
-            except dns.resolver.NXDOMAIN:
-                return ModuleResult(
-                    module=self.name,
-                    target=target,
-                    success=False,
-                    errors=[f"Domínio {target} não existe"],
-                )
             except Exception as e:
-                logger.warning(f"Erro ao buscar {rtype}: {e}")
-                results[rtype] = []
+                results[rtype] = [f"Error: {e}"]
 
-        return ModuleResult(
-            module=self.name,
-            target=target,
-            success=True,
-            data=results,
-        )
+        return ModuleResult(success=True, data=results)

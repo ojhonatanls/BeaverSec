@@ -1,4 +1,4 @@
-"""Entry point for BeaverSec execution."""
+"""Allow execution as python -m beaversec."""
 
 from beaversec.cli import cli
 

@@ -1,51 +1,34 @@
-"""
-Token-bucket rate limiter for async operations.
-"""
+"""Rate limiter for BeaverSec modules."""
 
-import asyncio
 import time
+from collections import deque
 from typing import Optional
 
-
 class RateLimiter:
-    """Token bucket rate limiter for async operations."""
-    
-    def __init__(self, rate: float, burst: Optional[int] = None, capacity: Optional[int] = None):
-        """
-        Initialize rate limiter.
-        
-        Args:
-            rate: Tokens per second.
-            burst: Maximum burst size (default: rate).
-            capacity: Alias for burst (for compatibility with older modules).
-        """
-        # Se capacity for fornecido, usa ele como burst (compatibilidade)
-        if capacity is not None:
-            burst = capacity
-        self.rate = rate
-        self.burst = burst if burst is not None else int(rate)
-        self.tokens = self.burst
-        self.last_refill = time.monotonic()
-        self._lock = asyncio.Lock()
-    
-    async def acquire(self, tokens: int = 1) -> None:
-        """Acquire tokens from the bucket."""
-        async with self._lock:
-            self._refill()
-            if self.tokens < tokens:
-                wait_time = (tokens - self.tokens) / self.rate
-                await asyncio.sleep(wait_time)
-                self._refill()
-            self.tokens -= tokens
-    
-    def _refill(self) -> None:
-        """Refill tokens based on elapsed time."""
-        now = time.monotonic()
-        elapsed = now - self.last_refill
-        new_tokens = elapsed * self.rate
-        self.tokens = min(self.burst, self.tokens + new_tokens)
-        self.last_refill = now
+    """Simple rate limiter using a sliding window."""
 
+    def __init__(self, max_calls: int, period: float = 1.0):
+        self.max_calls = max_calls
+        self.period = period
+        self.calls = deque()
 
-# Alias para compatibilidade com módulos antigos
-TokenBucket = RateLimiter
+    def acquire(self, block: bool = True, timeout: Optional[float] = None) -> bool:
+        """Acquire a permit to make a call."""
+        now = time.time()
+        # Remove calls older than the period
+        while self.calls and self.calls[0] < now - self.period:
+            self.calls.popleft()
+
+        if len(self.calls) < self.max_calls:
+            self.calls.append(now)
+            return True
+
+        if not block:
+            return False
+
+        # Block until a slot is available
+        sleep_time = self.calls[0] + self.period - now
+        if timeout is not None and sleep_time > timeout:
+            return False
+        time.sleep(max(0, sleep_time))
+        return self.acquire(block=False)

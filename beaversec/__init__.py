@@ -1,14 +1,14 @@
-"""
-BeaverSec - Modular Offensive Security Framework
-
-A modular security scanning framework with support for multiple
-reconnaissance and vulnerability assessment modules.
-"""
+"""BeaverSec - Modular Offensive Security Framework."""
 
 __version__ = "4.0.0"
-__author__ = "Jhonatan L. Santos"
-__license__ = "MIT"
 
-from beaversec.cli.commands import main
+from beaversec.core.base import BaseModule
+from beaversec.core.exceptions import BeaverSecError, ModuleLoadError, ValidationError
 
-__all__ = ["main"]
+__all__ = [
+    "__version__",
+    "BaseModule",
+    "BeaverSecError",
+    "ModuleLoadError",
+    "ValidationError",
+]

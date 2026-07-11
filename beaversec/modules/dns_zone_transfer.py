@@ -1,57 +1,37 @@
-"""DNS zone transfer (AXFR) tester.
+"""DNS zone transfer module for BeaverSec."""
 
-Attempts AXFR against authoritative name servers for a domain.
-"""
-from __future__ import annotations
-
-import asyncio
-import logging
-from typing import Any, Dict, Iterable, List
-
-import dns.resolver
 import dns.query
 import dns.zone
-
-from beaversec.core.rate_limiter import TokenBucket
-from beaversec.core.base_module import BaseModule
-from beaversec.config import get_config
-
-logger = logging.getLogger(__name__)
-
+from typing import Dict, Any
+from beaversec.core.base import BaseModule, ModuleResult
+from beaversec.core.security import SecurityValidator
 
 class DNSZoneTransferModule(BaseModule):
-    """DNS zone transfer tester."""
-
     name = "dns_zone_transfer"
+    description = "Attempt DNS zone transfer (AXFR)"
+    version = "1.0.0"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        cfg = get_config()
-        rate = cfg.get("rate_limit", 10.0)
-        self._limiter = TokenBucket(rate=float(rate), capacity=float(rate))
+    def validate_params(self, params: Dict[str, Any]) -> bool:
+        return "target" in params
 
-    async def attempt_axfr(self, domain: str) -> Dict[str, Any]:
-        await self._limiter.acquire(1.0)
-        results: Dict[str, Any] = {}
+    def execute(self, params: Dict[str, Any]) -> ModuleResult:
+        target = SecurityValidator.validate_target(params.get("target", ""))
+        # Try to find NS servers first
         try:
-            answers = dns.resolver.resolve(domain, "NS")
-            nameservers = [str(r.target).rstrip(".") for r in answers]
-        except Exception as exc:
-            logger.debug("Failed to resolve NS for %s: %s", domain, exc)
-            return {"error": str(exc)}
-        for ns in nameservers:
-            try:
-                zone = dns.zone.from_xfr(dns.query.xfr(ns, domain, timeout=5))
-                if zone is None:
-                    results[ns] = {"axfr": False}
-                else:
-                    results[ns] = {"axfr": True, "zonesize": len(zone.nodes)}
-            except Exception as exc:
-                results[ns] = {"axfr": False, "error": str(exc)}
-        return results
+            import dns.resolver
+            ns_answers = dns.resolver.resolve(target, 'NS')
+            ns_servers = [str(r) for r in ns_answers]
+        except Exception:
+            ns_servers = [target]  # fallback
 
-    async def run(self, domains: Iterable[str], **kwargs: Any) -> Dict[str, Any]:
-        out: Dict[str, Any] = {}
-        for d in domains:
-            out[d] = await self.attempt_axfr(d)
-        return out
+        for ns in ns_servers:
+            try:
+                zone = dns.zone.from_xfr(dns.query.xfr(ns, target))
+                if zone:
+                    records = {name.to_text(): [rdata.to_text() for rdata in rdset]
+                               for name, rdset in zone.items()}
+                    return ModuleResult(success=True, data={"server": ns, "records": records})
+            except Exception:
+                continue
+
+        return ModuleResult(success=False, error="Zone transfer failed on all NS servers")
