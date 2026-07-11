@@ -1,73 +1,72 @@
-# Contributing to BeaverSec
+# Contribuindo para o BeaverSec
 
-Thank you for your interest in contributing to BeaverSec.
+Agradecemos seu interesse em contribuir para o BeaverSec.
 
-## Adding a new module
+## Adicionando um novo módulo
 
-BeaverSec uses a plugin-style module system. New modules should be registered as
-setuptools entry points under the `beaversec.modules` group so they can be
-discovered by the installed package and by the runner.
+O BeaverSec utiliza um sistema de módulos estilo plugin. Novos módulos devem ser registrados como entry points do setuptools sob o grupo `beaversec.modules` para que possam ser descobertos pelo pacote instalado e pelo runner.
 
-Steps to add a new module:
+Passos para adicionar um novo módulo:
 
-1. Create a new Python file under `beaversec/modules/` implementing a class that
-   inherits from `beaversec.core.base.BaseModule`.
+1. Crie um novo arquivo Python em `beaversec/modules/` implementando uma classe que herda de `beaversec.core.base.BaseModule`.
 
-   Example skeleton:
+   Exemplo de esqueleto:
 
 ```python
-from beaversec.core.base import BaseModule
+from beaversec.core.base import BaseModule, ModuleResult
+from beaversec.core.security import SecurityValidator
 
-class MyModule(BaseModule):
-    """Short description of the module.
+class MeuModulo(BaseModule):
+    """Descrição curta do módulo.
 
-    Longer module documentation here.
+    Documentação mais longa do módulo aqui.
     """
 
-    name = "my_module"
+    name = "meu_modulo"
+    description = "Descrição do que o módulo faz"
+    version = "1.0.0"
 
     def validate_params(self, params: dict) -> bool:
-        # Validate parameters (raise or return False on invalid)
-        return True
+        # Valida os parâmetros (retorna False ou levanta exceção em caso de inválido)
+        return "target" in params
 
-    def execute(self, params: dict) -> dict:
-        # Implement main module logic here
-        return {"ok": True}
-```
+    def execute(self, params: dict) -> ModuleResult:
+        # Implementa a lógica principal do módulo aqui
+        target = SecurityValidator.validate_target(params.get("target", ""))
+        # ... lógica do módulo ...
+        return ModuleResult(success=True, data={"ok": True})
+2. Registre o módulo no pyproject.toml sob o grupo de entry-points
+    [project.entry-points."beaversec.modules"] usando o formato:
 
-2. Register the module in `pyproject.toml` under the entry-point group
-   `[project.entry-points."beaversec.modules"]` using the format:
+    meu_modulo = "beaversec.modules.meu_modulo:MeuModulo"
 
-   my_module = "beaversec.modules.my_module:MyModule"
+3. Instale e teste localmente:
 
-3. Install and test locally:
+    pipinstall−e.pipinstall−e. python3 -m beaversec list
+    $ python3 -m beaversec run meu_modulo <alvo>
 
-    $ pip install -e . --user
-    $ beaversec list
-    $ beaversec run my_module <target>
+4. Adicione testes unitários em tests/ cobrindo a lógica de validação e execução.
 
-4. Add unit tests under `tests/` covering validation and execution logic.
+5. Envie um Pull Request descrevendo o módulo e os testes.
 
-5. Submit a Pull Request describing the module and tests.
+## Compatibilidade com versões anteriores
 
-### Backwards compatibility
-Older modules may expose a `run(target, **kwargs)` function or class method. The
-runner supports both `execute(params)` and legacy `run()` functions for
-backward compatibility, but new modules should follow the `BaseModule` class
-pattern.
+Módulos antigos podem expor uma função run(target, **kwargs) ou método de classe. O
+runner suporta tanto execute(params) quanto funções run() legadas para
+compatibilidade com versões anteriores, mas novos módulos devem seguir o padrão da classe
+BaseModule.
 
-## Code Style
+## Estilo de Código
 
-- Follow PEP8 guidelines
-- Use meaningful names and add docstrings
+- Siga as diretrizes do PEP8
+- Use nomes significativos e adicione docstrings
 
-## Tests
+## Testes
 
-- Place unit tests in `tests/`
-- Integration tests go in `tests/integration/`
+- Coloque testes unitários em tests/
+- Testes de integração vão em tests/integration/
 
-## Commits and PRs
+## Commits e PRs
 
-- Use Conventional Commits
-- Include tests and update documentation when needed
-
+- Use Commits Convencionais
+- Inclua testes e atualize a documentação quando necessário
