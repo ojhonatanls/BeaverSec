@@ -1,169 +1,224 @@
-BeaverSec - Modular Offensive Security
-=====================================
+BeaverSec - Segurança Ofensiva Modular
+======================================
 
-What is BeaverSec
------------------
+O que é o BeaverSec
+-------------------
 
-BeaverSec is a modular offensive security framework designed for reconnaissance,
-enumeration, and vulnerability analysis. Built with Python 3.8+, it provides a
-plugin-based architecture for conducting security assessments.
+BeaverSec é um framework modular de segurança ofensiva projetado para reconhecimento,
+enumeração e análise de vulnerabilidades. Construído com Python 3.8+, ele fornece uma
+arquitetura baseada em plugins para realizar avaliações de segurança.
 
-Key Features:
+Características principais:
 
-- Modular plugin architecture using setuptools entry points
-- Secure input validation and sanitization
-- Structured logging with audit trail
-- Asynchronous processing for high performance
-- Linux-native design (no Windows/macOS-specific code)
-- Minimal dependencies using Python standard library extensions
+- Arquitetura modular de plugins usando entry points do setuptools
+- Validação e sanitização segura de entrada
+- Logs estruturados com trilha de auditoria
+- Processamento síncrono otimizado (sem async)
+- Design nativo para Linux (sem código específico para Windows/macOS)
+- Dependências mínimas usando extensões da biblioteca padrão Python
 
-Dependencies
+Dependências
 ------------
 
-The following packages are required:
+Os seguintes pacotes são necessários:
 
-- click >= 8.1       - Command-line interface
-- pydantic >= 1.10   - Data validation
-- aiohttp >= 3.8     - Asynchronous HTTP client
-- pyyaml >= 6.0      - YAML configuration parsing
-- dnspython >= 2.3   - DNS queries
-- shodan >= 1.27     - Shodan API integration
-- pysnmp >= 4.4      - SNMP protocol support
-- scapy >= 2.4       - Network packet manipulation
-- cryptography >= 41.0 - Cryptographic operations
-- pytest >= 7.0      - Testing framework
+- click >= 8.1       - Interface de linha de comando
+- pydantic >= 1.10   - Validação de dados
+- aiohttp >= 3.8     - Cliente HTTP assíncrono
+- pyyaml >= 6.0      - Parsing de configuração YAML
+- dnspython >= 2.3   - Consultas DNS
+- shodan >= 1.27     - Integração com a API Shodan
+- pysnmp >= 4.4      - Suporte ao protocolo SNMP
+- scapy >= 2.4       - Manipulação de pacotes de rede
+- cryptography >= 41.0 - Operações criptográficas
+- pytest >= 7.0      - Framework de testes
+- python-whois >= 0.7 - Consultas WHOIS (instalação opcional)
 
-How to install
---------------
+Como instalar
+-------------
 
-Single-command installation (recommended):
+Instalação com um único comando (recomendado):
 
     $ curl -sSL https://raw.githubusercontent.com/ojhonatanls/BeaverSec/main/scripts/install.sh | bash
 
-Or clone and run installer (alternate):
+Ou clone e execute o instalador (alternativa):
 
     $ git clone https://github.com/ojhonatanls/BeaverSec.git
     $ cd BeaverSec
-    $ ./scripts/install.sh
+    $ ./install.sh
 
-Notes:
-- The installer now installs BeaverSec for the current user using `pip --user`.
-  It will try to ensure `~/.local/bin` (or the user base bin) is in your PATH
-  and will copy the `beaversec` entrypoint to `/usr/local/bin` as a fallback
-  (sudo may be required for the latter).
-- The installer is non-interactive (except for sudo password prompts) and
-  attempts to install required system packages using the native package
-  manager when available.
+Notas:
+- O instalador agora cria um ambiente virtual (venv) para isolar as dependências.
+- Ele verifica a versão do Python (3.8+), instala as dependências e configura
+  o BeaverSec em modo editável.
+- O instalador tenta garantir que o comando `beaversec` esteja disponível no PATH.
+- Para módulos que exigem root (arp_scan, syn_scan), use `sudo python3 -m beaversec`.
 
-Verify installation:
+Verifique a instalação:
 
-    $ beaversec --help
+    $ python3 -m beaversec --help
 
-Quick Start
------------
+Início Rápido
+-------------
 
-List available modules:
+Listar módulos disponíveis:
 
-    $ beaversec list
+    $ python3 -m beaversec list
 
-Run a module against a target:
+Executar um módulo contra um alvo:
 
-    $ beaversec run ping_sweep 192.168.1.0/24
-    $ beaversec run port_scanner 192.168.1.1 -p 22,80,443
-    $ beaversec run dns_enum example.com
+    $ python3 -m beaversec run ping_sweep 192.168.1.1
+    $ python3 -m beaversec run port_scanner 192.168.1.1 -p 80
+    $ python3 -m beaversec run dns_enum example.com
 
-Save results to file:
+Salvar resultados em arquivo:
 
-    $ beaversec run port_scanner 192.168.1.1 -p 22,80,443 -o results.json
+    $ python3 -m beaversec run port_scanner 192.168.1.1 -p 80 -o results.json
 
 Runner
 ------
 
-The project ships a small runner script `beaversec_runner.py` that can be used as
-an alternative to the `beaversec` entry point. The runner has been adapted to
-load modules via setuptools entry points (group `beaversec.modules`). Prefer the
-`beaversec` command when available.
+O projeto inclui um script runner `beaversec_runner.py` que pode ser usado como
+alternativa ao entry point `beaversec`. O runner foi adaptado para carregar
+módulos via entry points do setuptools (grupo `beaversec.modules`). Prefira o
+comando `python3 -m beaversec` quando disponível, pois oferece uma interface
+mais completa com Click.
 
-Configuration
---------------
-
-Configuration file (XDG): ~/.config/beaversec/config.yaml
-
-Create this file to customize BeaverSec behavior (or use environment variables):
-
-    # API Keys
-    shodan:
-      api_key: "YOUR_SHODAN_API_KEY"
-
-    # Behavior
-    timeout: 30
-    max_threads: 10
-
-    # Security
-    block_private_networks: true
-
-Available Modules
------------------
-
-- ping_sweep        - Host discovery via ICMP/ARP
-- port_scanner      - TCP port scanning with service detection
-- syn_scan          - Stealth SYN scan
-- udp_scan          - UDP port scanning
-- dns_enum          - DNS record enumeration
-- dns_zone_transfer - DNS zone transfer testing
-- subdomain_brute   - Subdomain brute force
-- ssl_scan          - SSL/TLS certificate analysis
-- ssl_cipher_scan   - SSL/TLS cipher enumeration
-- http_headers      - HTTP security header analysis
-- whois_lookup      - WHOIS domain/IP lookup
-- shodan_enum       - Shodan API data enrichment
-- vuln_scanner      - Vulnerability scanning
-- service_detection - Service identification via banner grabbing
-- os_detection      - Operating system fingerprinting
-- snmp_enum         - SNMP enumeration
-
-Contributing
+Configuração
 ------------
 
-Guide for adding new modules:
+Arquivo de configuração (XDG): ~/.config/beaversec/config.yaml
 
-1. Create a new Python file under `beaversec/modules/` implementing a class that
-   inherits from `beaversec.core.base.BaseModule`.
-2. Implement `validate_params(self, params)` and `execute(self, params)` on the
-   class. Older modules that expose `run(target, **kwargs)` are still supported
-   by the runner for backward compatibility.
-3. Register the module in `pyproject.toml` under the entry-point group
+Crie este arquivo para personalizar o comportamento do BeaverSec:
+
+    # Chaves de API
+    shodan:
+      api_key: "SUA_SHODAN_API_KEY"
+    
+    nvd:
+      api_key: "SUA_NVD_API_KEY"
+    
+    securitytrails:
+      api_key: ""
+
+    # Comportamento
+    rate_limit: 200
+    http_timeout: 30
+
+    # Proxy
+    proxy:
+      url: ""
+      username: ""
+      password: ""
+
+    # Segurança
+    use_tor: false
+    tor_proxy: "socks5://127.0.0.1:9050"
+
+    # Furtividade
+    stealth:
+      enable_mac_spoof: false
+      random_delay_range: [0.0, 0.5]
+      packet_fragmentation: false
+
+    # Exportadores
+    exporters:
+      json: true
+      html: true
+      csv: true
+      pdf: false
+
+    # Timeouts
+    arp_timeout: 2
+
+Módulos Disponíveis
+-------------------
+
+- ping_sweep        - Descoberta de hosts via ICMP
+- arp_scan          - Descoberta de hosts na rede local via ARP (requer root)
+- port_scanner      - Escaneamento de portas TCP com detecção de serviço
+- syn_scan          - Escaneamento SYN furtivo (requer root)
+- udp_scan          - Escaneamento de portas UDP
+- dns_enum          - Enumeração de registros DNS
+- dns_zone_transfer - Teste de transferência de zona DNS
+- subdomain_brute   - Força bruta de subdomínios
+- ssl_scan          - Análise de certificados SSL/TLS
+- ssl_cipher_scan   - Enumeração de ciphers SSL/TLS
+- http_headers      - Análise de cabeçalhos de segurança HTTP
+- whois_lookup      - Consulta WHOIS de domínios/IPs
+- shodan_enum       - Enriquecimento de dados via API Shodan
+- vuln_scanner      - Escaneamento de vulnerabilidades
+- service_detection - Identificação de serviços via banner grabbing
+- os_detection      - Identificação de sistema operacional via TTL
+- snmp_enum         - Enumeração SNMP
+- banner_grabber    - Captura de banners em portas específicas
+
+Contribuindo
+------------
+
+Guia para adicionar novos módulos:
+
+1. Crie um novo arquivo Python em `beaversec/modules/` implementando uma classe
+   que herda de `beaversec.core.base.BaseModule`.
+
+2. Implemente `validate_params(self, params)` e `execute(self, params)` na
+   classe. O método `execute` deve retornar um objeto `ModuleResult`.
+
+3. Registre o módulo no `pyproject.toml` sob o grupo de entry-points
    `[project.entry-points."beaversec.modules"]`:
 
    ping_sweep = "beaversec.modules.ping_sweep:PingSweepModule"
 
-4. Test by installing the package in editable mode and running the CLI:
+4. Teste instalando o pacote em modo editável e executando o CLI:
 
-    $ pip install -e . --user
-    $ beaversec list
-    $ beaversec run <module> <target>
+    $ pip install -e .
+    $ python3 -m beaversec list
+    $ python3 -m beaversec run <modulo> <alvo>
 
-5. Open a PR with your changes.
+5. Abra um PR com suas alterações.
 
-Testing
--------
+Testes
+------
 
-Run unit tests:
+Execute os testes unitários:
 
     $ pytest -q
 
-Integration tests are located under `tests/integration/` and are executed by the
-CI integration matrix.
+Testes de integração estão localizados em `tests/integration/` e são executados
+pela matriz de integração do CI.
 
-Troubleshooting
----------------
+Solução de Problemas
+---------------------
 
-If `beaversec` is not in PATH after installation, start a new shell or run
-`source ~/.profile` (the installer attempts to add `~/.local/bin` to your PATH).
+1. **Erro "externally-managed-environment"**:
+   O Python do sistema está protegido. Use o ambiente virtual:
+   `python3 -m venv venv && source venv/bin/activate`
 
-License
+2. **"beaversec: command not found"**:
+   Ative o ambiente virtual: `source venv/bin/activate`
+   Ou use: `python3 -m beaversec`
+
+3. **"ModuleNotFoundError: No module named 'beaversec'"**:
+   Certifique-se de que o ambiente virtual está ativado e reinstale:
+   `pip install -e .`
+
+4. **"Permission denied" no arp_scan ou syn_scan**:
+   Execute com sudo: `sudo python3 -m beaversec run <modulo> <alvo>`
+
+5. **"Invalid target: 192.168.1.0/24" no arp_scan**:
+   O arp_scan aceita apenas IP individual, não CIDR.
+   Correto: `sudo python3 -m beaversec run arp_scan 192.168.1.1`
+
+6. **Módulo não aparece no `beaversec list`**:
+   Verifique se o módulo está registrado no `pyproject.toml` e reinstale:
+   `pip install -e .`
+
+Se `beaversec` não estiver no PATH após a instalação, inicie um novo shell ou
+execute `source ~/.profile` ou `source venv/bin/activate`.
+
+Licença
 -------
 
 MIT License 2024
 
-Maintained by Jhonatan L. Santos (https://github.com/ojhonatanls)
+Mantido por Jhonatan L. Santos (https://github.com/ojhonatanls)
