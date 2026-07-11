@@ -1,10 +1,14 @@
 """Click commands for BeaverSec CLI."""
 
+from __future__ import annotations
+
 import sys
 import click
+
+# Imports internos
 from beaversec.core.registry import Registry
 from beaversec.core.logging import setup_logging
-from beaversec.config import load_config
+from beaversec.config import load_config   # se não existir, veja nota abaixo
 
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
@@ -50,3 +54,6 @@ def run(ctx, module, target, port, output):
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+if __name__ == "__main__":
+    cli()

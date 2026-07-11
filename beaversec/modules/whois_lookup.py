@@ -1,6 +1,5 @@
 """WHOIS lookup module for BeaverSec."""
 
-import whois
 from typing import Dict, Any
 from beaversec.core.base import BaseModule, ModuleResult
 from beaversec.core.security import SecurityValidator
@@ -16,7 +15,10 @@ class WhoisLookup(BaseModule):
     def execute(self, params: Dict[str, Any]) -> ModuleResult:
         target = SecurityValidator.validate_target(params.get("target", ""))
         try:
+            import whois
             w = whois.whois(target)
             return ModuleResult(success=True, data=w.__dict__)
+        except ImportError:
+            return ModuleResult(success=False, error="python-whois not installed. Run: pip install python-whois")
         except Exception as e:
             return ModuleResult(success=False, error=str(e))
