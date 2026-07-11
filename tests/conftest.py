@@ -30,7 +30,6 @@ def credential_manager() -> CredentialManager:
     """Create a credential manager for testing."""
     return CredentialManager()
 
-
 @pytest.fixture
 def audit_logger() -> AuditLogger:
     """Create an audit logger for testing."""

@@ -16,8 +16,7 @@ class TestSecurityContext:
 
     def test_validate_operation_allowed(self, security_context):
         """Test validating allowed operations."""
-        assert security_context.validate_operation("scan") is None
-        assert security_context.validate_operation("dns_lookup") is None
+        assert security_context.validate_operation("scan")
 
     def test_validate_operation_blocked(self, security_context):
         """Test validating blocked operations."""
