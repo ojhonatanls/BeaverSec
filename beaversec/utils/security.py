@@ -84,3 +84,27 @@ def validate_target(target: str) -> str:
         return 'domain'
     
     raise ValueError(f"Alvo inválido: {target}")
+
+# Adicione no final do arquivo
+class SecurityValidator:
+    """Wrapper para as funções de validação existentes."""
+    
+    @staticmethod
+    def validate_ip(ip: str) -> bool:
+        return validate_ip(ip)
+    
+    @staticmethod
+    def validate_domain(domain: str) -> bool:
+        return validate_domain(domain)
+    
+    @staticmethod
+    def validate_target(target: str) -> bool:
+        try:
+            validate_target(target)
+            return True
+        except ValueError:
+            return False
+    
+    @staticmethod
+    def sanitize_target(target: str) -> str:
+        return sanitize_target(target)

@@ -20,6 +20,7 @@ beaversec/core/exceptions.py
 beaversec/core/logging.py
 beaversec/core/rate_limiter.py
 beaversec/core/registry.py
+beaversec/core/result.py
 beaversec/core/sanitizer.py
 beaversec/core/scanner.py
 beaversec/core/security.py
