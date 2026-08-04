@@ -1,98 +1,67 @@
+# beaversec/modules/dns_zone_transfer.py
+"""DNS zone transfer (AXFR) module for BeaverSec."""
 import logging
 from typing import Dict, Any, List
 
+import dns.query
+import dns.exception
+import dns.zone
+
 from beaversec.core.base import BaseModule
 from beaversec.core.result import ModuleResult
-from beaversec.utils.security import SecurityValidator
 
 logger = logging.getLogger(__name__)
 
+
 class DnsZoneTransferModule(BaseModule):
-    """
-    Test for DNS zone transfer vulnerability (AXFR).
-    """
     name = "dns_zone_transfer"
-    description = "Test for DNS zone transfer (AXFR) vulnerability"
+    description = "Attempt DNS zone transfer (AXFR) for a domain"
 
     def validate_params(self, params: Dict[str, Any]) -> bool:
-        return SecurityValidator.validate_domain(params.get("target", ""))
+        return isinstance(params, dict) and "target" in params and bool(params["target"])
 
     def execute(self, params: Dict[str, Any]) -> ModuleResult:
-        target: str = params.get("target")
-        if not target:
-            return ModuleResult(
-                success=False,
-                error="No target provided. Usage: run dns_zone_transfer <domain>"
-            )
+        target = params.get("target")
+        nameservers: List[str] = params.get("nameservers", [])
+        port = int(params.get("port", 53))
 
         try:
-            import dns.zone
-            import dns.resolver
-            import dns.exception
-        except ImportError:
-            return ModuleResult(
-                success=False,
-                error="`dnspython` library not installed. Please install it with: pip install dnspython"
-            )
-
-        try:
-            # Get NS records for the domain
-            ns_servers = []
-            try:
-                ns_response = dns.resolver.resolve(target, 'NS')
-                ns_servers = [str(r).rstrip('.') for r in ns_response]
-            except dns.resolver.NoAnswer:
-                return ModuleResult(
-                    success=False,
-                    error="No NS records found for the domain. Cannot test zone transfer."
-                )
-            except dns.exception.DNSException as e:
-                return ModuleResult(
-                    success=False,
-                    error=f"DNS resolution error: {e}"
-                )
-
-            zone_transferred = {}
-            for ns in ns_servers:
+            if not nameservers:
                 try:
-                    # Try to perform an AXFR request
-                    zone = dns.zone.from_xfr(dns.query.xfr(ns, target))
-                    if zone:
-                        zone_transferred[ns] = True
-                        # Let's keep a sample of records
-                        sample_records = [node.to_text() for node in list(zone.nodes.values())[:10]]
-                        zone_transferred[f"{ns}_sample"] = sample_records
-                    else:
-                        zone_transferred[ns] = False
-                except (dns.xfr.TransferError, dns.exception.Timeout, ConnectionRefusedError) as e:
-                    logger.debug(f"Zone transfer failed for {ns}: {e}")
-                    zone_transferred[ns] = False
+                    import dns.resolver
+                    ns_answers = dns.resolver.resolve(target, "NS")
+                    nameservers = [str(r.target).rstrip(".") for r in ns_answers]
+                except Exception:
+                    nameservers = []
+
+            results = {}
+            for ns in nameservers:
+                try:
+                    xfr = dns.query.xfr(ns, target, port=port, timeout=10)
+                    zone = dns.zone.from_xfr(xfr)
+                    if zone is None:
+                        results[ns] = {"success": False, "error": "no_zone_returned"}
+                        continue
+                    records = []
+                    for name, node in zone.nodes.items():
+                        rdatasets = node.rdatasets
+                        for rdataset in rdatasets:
+                            for rdata in rdataset:
+                                records.append(f"{name}.{target} {rdataset.rdtype} {rdata.to_text()}")
+                    results[ns] = {"success": True, "records": records}
+                except dns.exception.FormError as e:
+                    logger.debug("zone transfer form error %s: %s", ns, e)
+                    results[ns] = {"success": False, "error": "form_error"}
+                except dns.exception.Timeout:
+                    results[ns] = {"success": False, "error": "timeout"}
                 except Exception as e:
-                    logger.error(f"Unexpected error during zone transfer to {ns}: {e}")
-                    zone_transferred[ns] = {"error": "Unexpected error occurred"}
+                    logger.debug("zone transfer failed for %s: %s", ns, e)
+                    results[ns] = {"success": False, "error": str(e)}
 
-            # Determine if any zone transfer was successful
-            zone_transfer_success = any(v is True for v in zone_transferred.values() if isinstance(v, bool))
+            if not results:
+                return ModuleResult(success=False, error="no_nameservers_found_or_zone_transfer_not_attempted")
 
-            return ModuleResult(
-                success=True,
-                data={
-                    "target": target,
-                    "zone_transfer_possible": zone_transfer_success,
-                    "ns_servers_tested": ns_servers,
-                    "details": zone_transferred
-                },
-                metadata={"vulnerability": "Zone Transfer (AXFR)"}
-            )
-
-        except ImportError:
-            return ModuleResult(
-                success=False,
-                error="`dnspython` library not installed. Please install it with: pip install dnspython"
-            )
+            return ModuleResult(success=True, data={"target": target, "results": results})
         except Exception as e:
-            logger.exception(f"Unexpected error in dns_zone_transfer module: {e}")
-            return ModuleResult(
-                success=False,
-                error=f"An unexpected error occurred: {e}"
-            )
+            logger.exception("dns_zone_transfer failed for %s", target)
+            return ModuleResult(success=False, error=str(e))

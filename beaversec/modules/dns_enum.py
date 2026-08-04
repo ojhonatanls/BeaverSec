@@ -1,58 +1,45 @@
+# beaversec/modules/dns_enum.py
+"""DNS enumeration module for BeaverSec."""
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
+
+import dns.resolver
+import dns.exception
 
 from beaversec.core.base import BaseModule
 from beaversec.core.result import ModuleResult
-from beaversec.utils.security import SecurityValidator
 
 logger = logging.getLogger(__name__)
 
+
 class DnsEnumModule(BaseModule):
-    """
-    Enumerate DNS records for a domain.
-    Attempts to retrieve A, AAAA, MX, NS, TXT, SOA, and CNAME records.
-    """
     name = "dns_enum"
-    description = "Enumerate DNS records (A, AAAA, MX, NS, TXT, SOA, CNAME)"
+    description = "Enumerate DNS records for a domain"
 
     def validate_params(self, params: Dict[str, Any]) -> bool:
-        return SecurityValidator.validate_domain(params.get("target", ""))
+        return isinstance(params, dict) and "target" in params and bool(params["target"])
 
     def execute(self, params: Dict[str, Any]) -> ModuleResult:
-        target: str = params.get("target")
-        if not target:
-            return ModuleResult(
-                success=False,
-                error="No target provided. Usage: run dns_enum <domain>"
-            )
+        target = params.get("target")
+        resolver = dns.resolver.Resolver()
+        record_types = ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA"]
+        records: Dict[str, Any] = {}
 
         try:
-            import dns.resolver
-            import dns.exception
-        except ImportError:
-            return ModuleResult(
-                success=False,
-                error="`dnspython` library not installed. Please install it with: pip install dnspython"
-            )
+            for rtype in record_types:
+                try:
+                    answers = resolver.resolve(target, rtype)
+                    values = [r.to_text() for r in answers]
+                    records[rtype] = values
+                except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+                    records[rtype] = []
+                except dns.exception.Timeout:
+                    records[rtype] = []
+                except Exception as e:
+                    logger.debug("dns_enum: unexpected error for %s %s: %s", target, rtype, e)
+                    records[rtype] = []
 
-        records = {}
-        record_types = ['A', 'AAAA', 'MX', 'NS', 'TXT', 'SOA', 'CNAME']
-
-        for record_type in record_types:
-            try:
-                answers = dns.resolver.resolve(target, record_type, raise_on_no_answer=False)
-                if answers.rrset:
-                    records[record_type] = [str(r) for r in answers]
-                else:
-                    records[record_type] = []
-            except (dns.resolver.NoResolverConfiguration, dns.resolver.NoNameservers, dns.exception.DNSException) as e:
-                records[record_type] = {"error": str(e)}
-            except Exception as e:
-                logger.error(f"Unexpected error querying {record_type} for {target}: {e}")
-                records[record_type] = {"error": "Unexpected error occurred"}
-
-        return ModuleResult(
-            success=True,
-            data={"target": target, "records": records},
-            metadata={"record_types_queried": record_types}
-        )
+            return ModuleResult(success=True, data={"target": target, "records": records})
+        except Exception as e:
+            logger.exception("dns_enum failed for %s", target)
+            return ModuleResult(success=False, error=str(e))
