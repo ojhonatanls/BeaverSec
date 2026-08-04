@@ -23,7 +23,7 @@ class DnsZoneTransferModule(BaseModule):
     def execute(self, params: Dict[str, Any]) -> ModuleResult:
         target = params.get("target")
         nameservers: List[str] = params.get("nameservers", [])
-        port = int(params.get("port", 53))
+        port = int(params.get("port") or 53)
 
         try:
             if not nameservers:

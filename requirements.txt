@@ -1,4 +1,3 @@
-pip requirements
 # Core requirements for BeaverSec 3.0
 click>=8.1
 pydantic>=1.10
@@ -13,3 +12,5 @@ pytest>=7.0
 # Added for IDN handling and retry utilities
 idna>=3.4
 tenacity>=8.2.0
+python-whois>=0.7
+pysnmp==4.4.12

@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy project
 COPY . /app
+RUN pip install -e .
 
 # Create non-root user and set permissions
 RUN useradd -m beaversec && chown -R beaversec:beaversec /app
