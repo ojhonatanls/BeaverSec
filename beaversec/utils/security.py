@@ -1,10 +1,11 @@
-"""Módulo de segurança - Sanitização e validação de entradas."""
+"""Módulo de segurança - Validação de IP/domínio/CIDR e sanitização (PT-BR names)."""
 
 import re
 import ipaddress
+import idna
+from typing import Tuple
 
 def validate_ip(ip: str) -> bool:
-    """Valida se a string é um IP válido (IPv4 ou IPv6)."""
     try:
         ipaddress.ip_address(ip)
         return True
@@ -12,99 +13,61 @@ def validate_ip(ip: str) -> bool:
         return False
 
 def validate_domain(domain: str) -> bool:
-    """Valida se a string é um domínio válido."""
-    pattern = r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
-    return bool(re.match(pattern, domain))
+    """Validate domain including internationalized names via idna."""
+    if not domain or len(domain) > 253:
+        return False
+    try:
+        ace = idna.encode(domain).decode("ascii")
+    except idna.IDNAError:
+        return False
+    # Basic pattern for ACE/Punycode or ASCII labels
+    pattern = re.compile(r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$')
+    return bool(pattern.match(ace))
 
 def validate_cidr(cidr: str) -> bool:
-    """Valida se a string é um CIDR válido (deve ter a barra /)."""
-    # CIDR DEVE ter a barra /
     if '/' not in cidr:
         return False
-    
     try:
         ipaddress.ip_network(cidr, strict=False)
         return True
     except ValueError:
         return False
 
-def sanitize_target(target: str) -> str:
-    """
-    Sanitiza o alvo, removendo caracteres potencialmente maliciosos.
-    
-    Args:
-        target: String do alvo (IP, domínio, CIDR)
-    
-    Returns:
-        String sanitizada
-    
-    Raises:
-        ValueError: Se o alvo for inválido
-    """
-    # Remove espaços extras
-    sanitized = target.strip()
-    
-    # Remove caracteres de controle
-    sanitized = re.sub(r'[\x00-\x1f\x7f]', '', sanitized)
-    
-    # Remove caracteres que podem ser usados em injeção de comandos
-    # Mantém apenas letras, números, pontos, hífens, barras, dois pontos
-    sanitized = re.sub(r'[^a-zA-Z0-9.\-:/]', '', sanitized)
-    
-    # Remove espaços internos
-    sanitized = re.sub(r'\s+', '', sanitized)
-    
-    if not sanitized:
-        raise ValueError("Alvo vazio após sanitização")
-    
-    return sanitized
+def sanitizar_alvo(target: str) -> str:
+    """Sanitizador que rejeita caracteres inválidos em vez de removê-los."""
+    if not isinstance(target, str) or not target.strip():
+        raise ValueError("Alvo vazio")
+    # Allow only characters valid for IP, domain, CIDR, and port specs
+    if re.search(r"[^0-9A-Za-z\.\-:\/\[\]]", target):
+        raise ValueError(f"Alvo contém caracteres inválidos: {target}")
+    return target.strip()
 
-def validate_target(target: str) -> str:
-    """
-    Valida e sanitiza o alvo, determinando seu tipo.
-    
-    Returns:
-        str: 'ip', 'domain', 'cidr'
-    
-    Raises:
-        ValueError: Se o alvo for inválido
-    """
-    sanitized = sanitize_target(target)
-    
-    # Verifica se é IP (IPv4 ou IPv6)
-    if validate_ip(sanitized):
-        return 'ip'
-    
-    # Verifica se é CIDR
-    if validate_cidr(sanitized):
-        return 'cidr'
-    
-    # Verifica se é domínio
-    if validate_domain(sanitized):
-        return 'domain'
-    
+def validar_alvo(target: str) -> str:
+    """Valida estritamente o alvo e retorna um tipo 'ip'|'domain'|'cidr' ou levanta ValueError."""
+    t = sanitizar_alvo(target)
+    if validate_ip(t):
+        return "ip"
+    if validate_cidr(t):
+        return "cidr"
+    if validate_domain(t):
+        return "domain"
     raise ValueError(f"Alvo inválido: {target}")
 
-# Adicione no final do arquivo
+# Backwards-compatible aliases (English names)
+validate_target = validar_alvo
+sanitize_target = sanitizar_alvo
+
+# SecurityValidator wrapper (compatibilidade)
 class SecurityValidator:
-    """Wrapper para as funções de validação existentes."""
-    
     @staticmethod
     def validate_ip(ip: str) -> bool:
         return validate_ip(ip)
-    
     @staticmethod
     def validate_domain(domain: str) -> bool:
         return validate_domain(domain)
-    
     @staticmethod
-    def validate_target(target: str) -> bool:
-        try:
-            validate_target(target)
-            return True
-        except ValueError:
-            return False
-    
+    def validate_target(target: str) -> str:
+        return validar_alvo(target)
     @staticmethod
     def sanitize_target(target: str) -> str:
-        return sanitize_target(target)
+        return sanitizar_alvo(target)
