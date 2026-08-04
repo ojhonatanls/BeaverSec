@@ -1,7 +1,9 @@
-"""Ping sweep module for BeaverSec using raw ICMP sockets."""
+"""Ping sweep module for BeaverSec using raw ICMP sockets with fallback to system ping."""
 import socket
 import struct
 import time
+import subprocess
+import platform
 from typing import Dict, Any
 from ipaddress import ip_address, AddressValueError
 
@@ -31,10 +33,20 @@ def _checksum(source_bytes: bytes) -> int:
     answer = socket.htons(answer)
     return answer
 
+
+def _system_ping(target: str, timeout: float = 2.0) -> bool:
+    """Fallback to system ping command (platform-dependent)."""
+    cmd = ["ping", "-c", "1", "-W", str(int(timeout)), target] if platform.system().lower() != "windows" else ["ping", "-n", "1", target]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
+
 @with_retry(attempts=3, backoff=2)
 class PingSweepModule(BaseModule):
     name = "ping_sweep"
-    description = "ICMP ping sweep for host discovery (raw socket)"
+    description = "ICMP ping sweep for host discovery (raw socket with ping fallback)"
     version = "1.0.0"
 
     def validate_params(self, params: Dict[str, Any]) -> bool:
@@ -63,13 +75,17 @@ class PingSweepModule(BaseModule):
         except ValueError as e:
             return ModuleResult(success=False, error=str(e))
 
-        # Need raw sockets -> PermissionError if not root
+        # Try raw socket first
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
         except PermissionError:
-            return ModuleResult(success=False, error="Root privileges required for raw ICMP sockets")
+            # Fallback to system ping when raw sockets not available
+            alive = _system_ping(target)
+            return ModuleResult(success=True if alive else False, data={"alive": alive})
         except OSError as e:
-            return ModuleResult(success=False, error=f"Socket error: {e}")
+            # OSError (non-permission) - attempt system ping fallback
+            alive = _system_ping(target)
+            return ModuleResult(success=True if alive else False, data={"alive": alive, "note": str(e)})
 
         try:
             sock.settimeout(2)
