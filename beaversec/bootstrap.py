@@ -2,31 +2,32 @@
 import importlib
 import logging
 import os
-from typing import List
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
-REQUIRED = [
-    "click",
-    "pydantic",
-    "aiohttp",
-    "pyyaml",
-    "dnspython",
-    "shodan",
-    "pysnmp",
-    "scapy",
-    "cryptography",
-    "idna",
-    "tenacity",
-]
+# Map pip package names to their importable module names to avoid false positives
+PACKAGE_IMPORT_MAP: Dict[str, str] = {
+    "click": "click",
+    "pydantic": "pydantic",
+    "aiohttp": "aiohttp",
+    "pyyaml": "yaml",     # pip: pyyaml -> import: yaml
+    "dnspython": "dns",   # pip: dnspython -> import: dns
+    "shodan": "shodan",
+    "pysnmp": "pysnmp",
+    "scapy": "scapy",
+    "cryptography": "cryptography",
+    "idna": "idna",
+    "tenacity": "tenacity",
+}
 
 
 def check_dependencies() -> List[str]:
     """Return a list of missing dependency package names."""
     missing = []
-    for pkg in REQUIRED:
+    for pkg, import_name in PACKAGE_IMPORT_MAP.items():
         try:
-            importlib.import_module(pkg)
+            importlib.import_module(import_name)
         except Exception:
             missing.append(pkg)
     return missing
