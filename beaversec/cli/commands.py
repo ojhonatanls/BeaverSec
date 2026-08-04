@@ -62,7 +62,7 @@ def run_module_cli(ctx: click.Context, module: str, target: str, port: Optional[
 
     registry = Registry()
     try:
-        result = registry.run_module(params.module, params.dict(exclude={"module"}))
+        result = registry.run_module(params.module, params.model_dump(exclude={"module"}))
         click.echo(result)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
