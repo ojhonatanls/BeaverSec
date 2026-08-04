@@ -1,4 +1,4 @@
-"""Rate limiter for BeaverSec modules."""
+"""Rate limiter for BeaverSec modules (sliding window)."""
 
 import time
 from collections import deque
@@ -14,21 +14,26 @@ class RateLimiter:
 
     def acquire(self, block: bool = True, timeout: Optional[float] = None) -> bool:
         """Acquire a permit to make a call."""
-        now = time.time()
-        # Remove calls older than the period
-        while self.calls and self.calls[0] < now - self.period:
-            self.calls.popleft()
+        start = time.time()
+        while True:
+            now = time.time()
+            # Remove calls older than the period
+            while self.calls and self.calls[0] < now - self.period:
+                self.calls.popleft()
 
-        if len(self.calls) < self.max_calls:
-            self.calls.append(now)
-            return True
+            if len(self.calls) < self.max_calls:
+                self.calls.append(now)
+                return True
 
-        if not block:
-            return False
+            if not block:
+                return False
 
-        # Block until a slot is available
-        sleep_time = self.calls[0] + self.period - now
-        if timeout is not None and sleep_time > timeout:
-            return False
-        time.sleep(max(0, sleep_time))
-        return self.acquire(block=False)
+            # Calculate how long to wait for the oldest call to expire
+            sleep_time = self.calls[0] + self.period - now
+            if timeout is not None:
+                elapsed = now - start
+                if elapsed + sleep_time > timeout:
+                    return False
+
+            time.sleep(max(0.0, sleep_time))
+            # Loop again to re-check availability
