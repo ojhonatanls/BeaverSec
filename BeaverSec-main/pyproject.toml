@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beaversec"
-version = "3.0.0"
+version = "4.0.0"
 description = "Ferramenta modular de segurança ofensiva"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Jhonatan", email = "jhonatanlucassantos9@gmail.com"}
+    {name = "Jhonatan L. Santos", email = "jhonatanlucassantosofc@gmail.com"}
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
