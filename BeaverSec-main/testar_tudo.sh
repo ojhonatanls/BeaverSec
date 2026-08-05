@@ -2,28 +2,28 @@
 # BeaverSec 3.0 - Teste Completo de Todos os Módulos
 
 echo "=========================================="
-echo "🦫 BEAVERSEC 3.0 - TESTE COMPLETO"
+echo "BEAVERSEC 4.0 - TESTE COMPLETO"
 echo "=========================================="
 echo ""
 
 # 1. Verificar ambiente
-echo "📌 1. VERIFICANDO AMBIENTE..."
+echo "1. VERIFICANDO AMBIENTE..."
 if [ -z "$VIRTUAL_ENV" ]; then
-    echo "❌ Ambiente virtual NÃO está ativo!"
+    echo "Ambiente virtual NÃO está ativo!"
     echo "   Execute: source venv/bin/activate"
     exit 1
 else
-    echo "✅ Ambiente virtual ativo: $VIRTUAL_ENV"
+    echo "Ambiente virtual ativo: $VIRTUAL_ENV"
 fi
 echo ""
 
 # 2. Listar módulos
-echo "📌 2. MÓDULOS DISPONÍVEIS..."
+echo "2. MÓDULOS DISPONÍVEIS..."
 beaversec list
 echo ""
 
 # 3. Testar todos os módulos (sem sudo)
-echo "📌 3. TESTANDO MÓDULOS (SEM SUDO)..."
+echo "3. TESTANDO MÓDULOS (SEM SUDO)..."
 echo ""
 
 # 3.1 - ping_sweep
@@ -92,7 +92,7 @@ beaversec run vuln_scanner example.com 2>/dev/null | grep -q "{}" && echo "   �
 echo ""
 
 # 4. Módulos com sudo
-echo "📌 4. TESTANDO MÓDULOS (COM SUDO)..."
+echo "4. TESTANDO MÓDULOS (COM SUDO)..."
 echo ""
 
 # 4.1 - syn_scan
@@ -106,18 +106,18 @@ sudo "$(which beaversec)" run arp_scan 192.168.1.0/28 2>/dev/null | grep -q "{}"
 echo ""
 
 # 5. Exportadores
-echo "📌 5. TESTANDO EXPORTADORES..."
+echo "5. TESTANDO EXPORTADORES..."
 beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o teste.json 2>/dev/null && echo "   ✅ JSON: OK" || echo "   ❌ JSON: FALHA"
 beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o teste.html --format html 2>/dev/null && echo "   ✅ HTML: OK" || echo "   ❌ HTML: FALHA"
 beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o teste.csv --format csv 2>/dev/null && echo "   ✅ CSV: OK" || echo "   ❌ CSV: FALHA"
 echo ""
 
 # 6. Limpeza
-echo "📌 6. LIMPANDO ARQUIVOS DE TESTE..."
+echo "6. LIMPANDO ARQUIVOS DE TESTE..."
 rm -f teste.json teste.html teste.csv
 echo "   ✅ Limpeza concluída"
 echo ""
 
 echo "=========================================="
-echo "✅ TESTE COMPLETO CONCLUÍDO!"
+echo "TESTE COMPLETO CONCLUÍDO!"
 echo "=========================================="]
