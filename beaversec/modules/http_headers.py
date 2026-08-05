@@ -9,7 +9,7 @@ from beaversec.core.security import SecurityValidator
 class HTTPHeadersModule(BaseModule):
     name = "http_headers"
     description = "Retrieve HTTP response headers"
-    version = "1.0.0"
+    version = "4.0.0"
 
     def validate_params(self, params: Dict[str, Any]) -> bool:
         return "target" in params
