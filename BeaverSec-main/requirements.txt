@@ -1,4 +1,4 @@
-# Core requirements for BeaverSec 3.0
+# Core requirements for BeaverSec 4.0
 click>=8.1
 pydantic>=1.10
 aiohttp>=3.8
