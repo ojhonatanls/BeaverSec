@@ -2,33 +2,33 @@
 # BeaverSec 3.0 - Script de Verificação Final
 
 echo "=========================================="
-echo "🦫 BEAVERSEC 3.0 - VERIFICAÇÃO FINAL"
+echo "BEAVERSEC 4.0 - VERIFICAÇÃO FINAL"
 echo "=========================================="
 echo ""
 
 # 1. Verificar ambiente
-echo "📌 1. VERIFICANDO AMBIENTE..."
+echo "1. VERIFICANDO AMBIENTE..."
 if [ -z "$VIRTUAL_ENV" ]; then
-    echo "❌ Ambiente virtual NÃO está ativo!"
+    echo "Ambiente virtual NÃO está ativo!"
     echo "   Execute: source venv/bin/activate"
     exit 1
 else
-    echo "✅ Ambiente virtual ativo: $VIRTUAL_ENV"
+    echo "Ambiente virtual ativo: $VIRTUAL_ENV"
 fi
 echo ""
 
 # 2. Verificar versão
-echo "📌 2. VERSÃO DO BEAVERSEC..."
+echo "2. VERSÃO DO BEAVERSEC..."
 beaversec --version 2>/dev/null || echo "   ℹ️  Versão não disponível (CLI sem --version)"
 echo ""
 
 # 3. Listar módulos
-echo "📌 3. MÓDULOS DISPONÍVEIS..."
+echo "3. MÓDULOS DISPONÍVEIS..."
 beaversec list
 echo ""
 
 # 4. Testar todos os módulos
-echo "📌 4. TESTANDO TODOS OS MÓDULOS..."
+echo "4. TESTANDO TODOS OS MÓDULOS..."
 echo ""
 
 # 4.1 - ping_sweep
@@ -107,24 +107,24 @@ sudo "$(which beaversec)" run arp_scan 192.168.1.0/28 2>/dev/null | grep -q "{}"
 echo ""
 
 # 5. Testar exportações
-echo "📌 5. TESTANDO EXPORTAÇÃO..."
+echo "5. TESTANDO EXPORTAÇÃO..."
 beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o teste.json 2>/dev/null && echo "   ✅ JSON: OK" || echo "   ❌ JSON: FALHA"
 beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o teste.html --format html 2>/dev/null && echo "   ✅ HTML: OK" || echo "   ❌ HTML: FALHA"
 beaversec run port_scanner 127.0.0.1 -p 22,80,443 -o teste.csv --format csv 2>/dev/null && echo "   ✅ CSV: OK" || echo "   ❌ CSV: FALHA"
 echo ""
 
 # 6. Limpeza
-echo "📌 6. LIMPANDO ARQUIVOS DE TESTE..."
+echo "6. LIMPANDO ARQUIVOS DE TESTE..."
 rm -f teste.json teste.html teste.csv
-echo "   ✅ Limpeza concluída"
+echo "Limpeza concluída"
 echo ""
 
 echo "=========================================="
-echo "✅ VERIFICAÇÃO FINAL CONCLUÍDA!"
+echo "VERIFICAÇÃO FINAL CONCLUÍDA!"
 echo "=========================================="
 echo ""
-echo "📊 RESUMO:"
-echo "   - 16 módulos testados"
+echo "RESUMO:"
+echo "   - 17 módulos testados"
 echo "   - 3 formatos de exportação testados"
 echo "   - Todos os módulos devem estar funcionando"
 echo ""
