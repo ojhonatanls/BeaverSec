@@ -141,7 +141,7 @@ class HTMLExporter:
         </div>
     </div>
     <div class="footer">
-        BeaverSec v3.0 - Feito com 🦫 por <a href="https://github.com/ojhonatanls" style="color: #00d4ff; text-decoration: none;">Jhonatan</a>
+        BeaverSec v3.0 - Feito por <a href="https://github.com/ojhonatanls" style="color: #00d4ff; text-decoration: none;">Jhonatan</a>
     </div>
 </body>
 </html>"""
